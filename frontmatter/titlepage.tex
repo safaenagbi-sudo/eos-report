@@ -1,0 +1,117 @@
+% ────────────────────────
+%  TITLE PAGE
+%  Clean deterministic one-page layout
+% ────────────────────────
+
+\cleardoublepage
+\thispagestyle{empty}
+
+\definecolor{ensamplum}{RGB}{91,32,102}
+
+\begin{tikzpicture}[remember picture,overlay]
+
+    % Left sidebar
+    \fill[ensamplum]
+        (current page.north west)
+        rectangle
+        ($(current page.south west)+(2.4cm,0)$);
+
+    % Sidebar text
+    \node[
+        rotate=90,
+        white,
+        font=\fontsize{24}{26}\selectfont\bfseries\itshape
+    ] at ($(current page.west)+(1.2cm,0)$)
+    {Département Génie Informatique};
+
+    % ENSAM logo
+    \node[anchor=north west]
+        at ($(current page.north west)+(3.2cm,-1.4cm)$)
+    {
+        \includegraphics[width=4.0cm]{figures/logoENsam.png}
+    };
+
+    % Oracle logo
+    \node[anchor=north east]
+        at ($(current page.north east)+(-1.6cm,-1.35cm)$)
+    {
+        \includegraphics[width=3.4cm]{figures/oracle_logo.png}
+    };
+
+    % Main title
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.5cm,
+        font=\fontsize{18}{22}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-4.6cm)$)
+    {End-of-Studies Internship Report};
+
+    % Program
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.5cm,
+        font=\fontsize{12}{15}\selectfont
+    ] at ($(current page.north)+(1.2cm,-5.5cm)$)
+    {Program: Artificial Intelligence and Computer Engineering};
+
+    % Student name
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.5cm,
+        font=\fontsize{15}{18}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-7.1cm)$)
+    {$\bullet$ $\bullet$ Safae Nagbi $\bullet$ $\bullet$};
+
+    % Title label
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.5cm,
+        font=\fontsize{13}{16}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-8.7cm)$)
+    {Title};
+
+    % Project title box
+    \node[
+        anchor=north,
+        align=center,
+        text width=12.5cm,
+        rounded corners=4pt,
+        draw=ensamplum!45,
+        line width=0.7pt,
+        inner xsep=14pt,
+        inner ysep=14pt,
+        font=\fontsize{16}{21}\selectfont\itshape
+    ] at ($(current page.north)+(1.2cm,-9.4cm)$)
+    {Agricultural Intelligence:\\[0.25cm]
+     Crop Mapping using Machine Learning\\
+     and Sentinel-2 Satellite Imagery};
+
+    % Information block
+    \node[
+        anchor=north,
+        align=center,
+        text width=12.8cm,
+        font=\fontsize{12}{16}\selectfont
+    ] at ($(current page.north)+(1.2cm,-14.0cm)$)
+    {
+        \textbf{Host Company:} Oracle Morocco Research and Development Center\\[0.55cm]
+        \textbf{Professional Supervisor:} Mitra Noosha\\[0.55cm]
+        \textbf{Academic Supervisor:} Soukaina Bouhsissin\\[1.0cm]
+        \textbf{From} 15/01/2026 \textbf{to} 14/07/2026
+    };
+
+    % Academic year footer
+    \node[
+        anchor=south,
+        align=center,
+        font=\fontsize{12}{14}\selectfont\bfseries
+    ] at ($(current page.south)+(1.2cm,1.2cm)$)
+    {Academic Year: 2025--2026};
+
+\end{tikzpicture}
+
+\clearpage
