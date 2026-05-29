@@ -1,0 +1,21 @@
+.DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lol
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*-SAVE-ERROR
+
+# Generated report PDF
+/main.pdf
