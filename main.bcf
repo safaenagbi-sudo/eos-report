@@ -2373,11 +2373,37 @@
     <bcf:datasource type="file" datatype="bibtex" glob="false">bibliography/references.bib</bcf:datasource>
   </bcf:bibdata>
   <bcf:section number="0">
-    <bcf:citekey order="1" intorder="1">confluence</bcf:citekey>
-    <bcf:citekey order="2" intorder="1">zoom</bcf:citekey>
-    <bcf:citekey order="3" intorder="1">jira</bcf:citekey>
-    <bcf:citekey order="4" intorder="1">slack</bcf:citekey>
-    <bcf:citekey order="5" intorder="1">agile</bcf:citekey>
+    <bcf:citekey order="1" intorder="1">jensen2016</bcf:citekey>
+    <bcf:citekey order="2" intorder="1">thenkabail2018</bcf:citekey>
+    <bcf:citekey order="3" intorder="1">drusch2012</bcf:citekey>
+    <bcf:citekey order="4" intorder="1">esa2015</bcf:citekey>
+    <bcf:citekey order="5" intorder="1">esa2015</bcf:citekey>
+    <bcf:citekey order="6" intorder="1">openstreetmap2023</bcf:citekey>
+    <bcf:citekey order="7" intorder="1">openstreetmap2023</bcf:citekey>
+    <bcf:citekey order="8" intorder="1">de2017</bcf:citekey>
+    <bcf:citekey order="9" intorder="1">inglada2016</bcf:citekey>
+    <bcf:citekey order="10" intorder="1">defourny2019</bcf:citekey>
+    <bcf:citekey order="11" intorder="1">minagri2018</bcf:citekey>
+    <bcf:citekey order="12" intorder="1">minagri2018</bcf:citekey>
+    <bcf:citekey order="13" intorder="1">mountrakis2011</bcf:citekey>
+    <bcf:citekey order="14" intorder="1">breiman2001</bcf:citekey>
+    <bcf:citekey order="15" intorder="1">chen2016</bcf:citekey>
+    <bcf:citekey order="16" intorder="1">lecun2015</bcf:citekey>
+    <bcf:citekey order="17" intorder="1">maggiori2017</bcf:citekey>
+    <bcf:citekey order="18" intorder="1">kussul2017</bcf:citekey>
+    <bcf:citekey order="19" intorder="1">inglada2016</bcf:citekey>
+    <bcf:citekey order="20" intorder="1">inglada2016</bcf:citekey>
+    <bcf:citekey order="21" intorder="1">maus2016</bcf:citekey>
+    <bcf:citekey order="22" intorder="1">barcanibar2020</bcf:citekey>
+    <bcf:citekey order="23" intorder="1">hochreiter1997</bcf:citekey>
+    <bcf:citekey order="24" intorder="1">russwurm2017</bcf:citekey>
+    <bcf:citekey order="25" intorder="1">russwurm2017</bcf:citekey>
+    <bcf:citekey order="26" intorder="1">interdonato2019</bcf:citekey>
+    <bcf:citekey order="27" intorder="1">cho2014</bcf:citekey>
+    <bcf:citekey order="28" intorder="1">garnot2020</bcf:citekey>
+    <bcf:citekey order="29" intorder="1">inglada2016</bcf:citekey>
+    <bcf:citekey order="30" intorder="1">defourny2019</bcf:citekey>
+    <bcf:citekey order="31" intorder="1">rs2020rwanda</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

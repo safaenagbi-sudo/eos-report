@@ -1,252 +1,596 @@
 % ============================================================
-%  CHAPTER 2 — Project Management
+%  CHAPTER 2 —  Literature Review
 % ============================================================
 
-\chapter{Project Management}
+\chapter{Literature Review}
 
 % ──────────────────────────────────────────
 \section{Introduction}
 % ──────────────────────────────────────────
 
-This chapter presents the organizational aspects of the project carried
-out during my internship. It describes the methods, tools, and practices
-used to structure the work, improve collaboration, and ensure efficient
-task completion.
+This chapter reviews the theoretical foundations and existing literature relevant 
+to crop mapping using satellite imagery and machine learning techniques. 
+It begins by introducing the principles of remote sensing and the 
+characteristics of Sentinel-2 imagery that make it suitable for agricultural 
+applications. It then examines crop phenology as a key concept underlying 
+time-series-based classification. 
 
-Effective project organization is an essential factor in the success of
-any technical project. It allows teams to collaborate smoothly,
-communicate clearly, and deliver high-quality results within the expected
-timeframe. Throughout this chapter, the internship process, the project
-management tools, the adopted methodology, and the project planning are
-presented.
-
+Finally, it reviews existing approaches to crop mapping from snapshot-based methods to time-series and deep learning 
+techniques identifying their strengths, limitations, and the gaps that 
+motivate the approach adopted in this project.
 % ──────────────────────────────────────────
-\section{Internship Process}
+\section{Remote Sensing Fundamentals}
 % ──────────────────────────────────────────
+Remote sensing refers to the acquisition of information about an object, surface, or phenomenon without direct physical contact.
+In Earth Observation, remote sensing systems mounted on satellites or aircraft measure the electromagnetic radiation reflected 
+or emitted by the Earth's surface in order to characterize natural and human activities. 
 
-This section describes the main phases of my internship at Oracle, from
-the onboarding period to the technical training.
+Remote sensing technologies have become fundamental tools for environmental monitoring, land-cover analysis, climate studies, and agricultural management.
+By providing repeated and large-scale observations of the Earth's surface, satellite imagery enables continuous monitoring of vegetation 
+dynamics and crop development over time.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.47\textwidth]{figures/remote_sensing.png}
+    \caption{Overview of the Remote Sensing process}
+\end{figure}
+
 
   % ── 2.2.1 ──
-  \subsection{Onboarding Phase}
+  \subsection{Electromagnetic Spectrum}
 
-  The initial phase of my internship at Oracle consisted of becoming
-  familiar with the company's internal environment and the Morocco
-  Research and Development Center (MADC). This phase included meetings
-  with key people, such as the HR manager, the program manager, members
-  of the Oracle Morocco team, my mentor, and the project team.
-
-  During this period, I also received my internship equipment and
-  participated in introductory sessions that helped me understand the
-  objectives of the project, the team organization, and the expectations
-  related to my work. After receiving my workstation, I configured the
-  required working environment, including SSO, VPN, and BitLocker.
-
+  Electromagnetic radiation is a form of energy that propagates through space in the form of waves.
+  The electromagnetic spectrum encompasses a wide range of wavelengths, extending from gamma rays and X-rays to visible
+  light, infrared, and radio waves.
+  
+  Remote sensing applications primarily rely on the \textbf{visible} , \textbf{near-infrared} (NIR), 
+  and \textbf{shortwave infrared} (SWIR) portions of the spectrum, as these bands contain valuable information about vegetation 
+  and soil characteristics.
+  
   \begin{figure}[h]
     \centering
-    \includegraphics[width=0.8\textwidth]{figures/jira_ticket_example}
-    \caption{Jira Ticket Example}
-    \label{fig:jira_ticket_example}
+    \includegraphics[width=0.8\textwidth]{figures/Electromagnetic-Spectrum.png}
+    \caption{Electromagnetic spectrum}
+    
   \end{figure}
+
+  \textbf{Visible light} corresponds to wavelengths approximately between 400~nm and 700~nm and includes the blue,
+  green, and red bands perceived by the human eye. Vegetation strongly absorbs red light due to chlorophyll activity while reflecting
+  green light, which explains the green appearance of plants. 
+  
+  \textbf{Near-infrared} radiation, typically between 700~nm and 1300~nm,
+  is highly reflected by healthy vegetation because of the internal cellular structure of plant leaves. This property makes the NIR region
+  particularly important for vegetation monitoring and crop analysis. 
+  
+  \textbf{Shortwave infrared} bands are sensitive to vegetation moisture content,
+  soil properties, and water stress conditions. These bands are frequently used in agricultural and environmental monitoring applications.
+
+  The spectral response of different land-cover types varies across wavelengths, allowing satellite sensors to distinguish vegetation, water bodies,
+  urban areas, and bare soil based on their spectral signatures.
+
+  
 
   % ── 2.2.2 ──
-  \subsection{Training Phase}
+  \subsection{Interaction with Earth's Surface}
 
-  I completed a comprehensive compliance training program covering
-  essential company policies, security rules, and internal regulations.
-  This training provided a solid foundation for the internship and helped
-  ensure that I was aware of my responsibilities and Oracle's
-  expectations.
+  When electromagnetic radiation reaches the Earth's surface, it is 
+  either \textbf{absorbed}, \textbf{transmitted}, or \textbf{reflected}. The proportion of each 
+  depends on the wavelength and the physical and chemical properties 
+  of the surface material. This wavelength-dependent reflectance 
+  behaviour is referred to as a \textbf{spectral signature}, and it forms the 
+  physical basis for distinguishing different land cover types from 
+  satellite imagery~\cite{jensen2016}.
 
-  Following this compliance training, I started a series of generic
-  technical training sessions focused on strengthening my foundations in
-  several areas, including Oracle Cloud Infrastructure (OCI), DevOps, and
-  Linux.
+  Vegetation exhibits a distinctive spectral signature: strong 
+  absorption in the red band (around 670~nm) driven by chlorophyll 
+  activity, and high reflectance in the near-infrared (NIR) region 
+  (around 800~nm) due to the internal structure of leaf cells. Bare 
+  soil, water, and built surfaces each exhibit markedly different 
+  signatures, enabling automated classification algorithms to 
+  discriminate between them. Within vegetation itself, spectral 
+  differences between crop types --- though subtler --- can be 
+  exploited when sufficient spectral and temporal resolution is 
+  available \cite{thenkabail2018}.
 
-  \begin{figure}[h]
-    \centering
-    %\includegraphics[width=0.8\textwidth]{figures/generic_training}
-    \fbox{\parbox{0.8\textwidth}{\centering Placeholder for Generic Training figure}}
-    \caption{Generic Training}
-    \label{fig:generic_training}
-  \end{figure}
+  % ── 2.2.3 ──
+  \subsection{Remote Sensing Applications in Agriculture}
+   
+  Remote sensing has become an essential technology for modern \textbf{agricultural
+  monitoring} and \textbf{precision farming}. Satellite imagery enables large-scale 
+  and frequent observation of agricultural areas without the need for costly field surveys.
 
-  Once the foundational training sessions were completed, I moved on to
-  more specific training related to the project requirements. This
-  included APEX foundations and the development of small applications in
-  order to practice and better understand the tools used within the team.
+  In agriculture, remote sensing is commonly used for \textbf{crop type mapping}, 
+  \textbf{vegetation health assessment}, \textbf{yield estimation}, \textbf{drought monitoring},
+  \textbf{irrigation management}, and detection of environmental \textbf{stress conditions}. 
+   
+  The temporal dimension provided by satellite time series is particularly important 
+  for crop classification tasks. Different crops exhibit distinct seasonal growth patterns,
+  which can be observed through changes in spectral reflectance over time. Monitoring these 
+  temporal dynamics enables more accurate identification of crop types compared to single-date observations.
+
+  Despite its advantages, agricultural remote sensing also faces several challenges. Persistent cloud cover
+  may reduce image availability, especially in tropical regions. Mixed pixels caused by 
+  fragmented agricultural parcels can introduce spectral ambiguity, while variations in planting dates 
+  and farming practices increase the complexity of crop classification tasks.
 
 % ──────────────────────────────────────────
-\section{Management Tools}
+\section{Sentinel-2 Satellite Imagery}
 % ──────────────────────────────────────────
-
-To facilitate collaboration, communication, documentation, and task
-tracking, several management tools were used throughout the internship.
-The main tools are presented in the following sections.
+  
+  Sentinel-2 is one of the most important Earth Observation missions developed within the \textbf{European Union's Copernicus Programme}.
+   specifically designed for land monitoring applications. Its high temporal resolution, 
+  rich spectral information, and free open-access policy make it a de facto 
+  standard for large-scale crop classification tasks based on satellite 
+  time series.
 
   % ── 2.3.1 ──
-  \subsection{Confluence}
+  \subsection{Overview of the Sentinel-2 Mission}
 
-  Confluence provided a centralized platform for knowledge sharing and
-  documentation. It was used to document tasks, research, technical
-  notes, and project-related information throughout the internship.
-  It also served as a repository where useful project details and
-  references could be stored and accessed by the team~\cite{confluence}.
+  The Sentinel-2 mission consists of two polar-orbiting satellites: 
+  \textbf{Sentinel-2A}, launched in 2015, and \textbf{Sentinel-2B}, launched in 2017. 
+  Both satellites operate in the same sun-synchronous orbit at an 
+  altitude of approximately 786~km. The combination of the two 
+  satellites enables a revisit frequency of approximately \textbf{five days}
+  at the equator and even shorter revisit times at higher latitudes. 
+  This frequent acquisition capability is essential for monitoring 
+  dynamic agricultural processes and capturing crop evolution 
+  throughout the growing season \cite{drusch2012}.
+
+  Sentinel-2 provides \textbf{multispectral imagery} in thirteen spectral 
+  bands covering the visible, near-infrared (NIR), and shortwave 
+  infrared (SWIR) regions of the electromagnetic spectrum, at 
+  spatial resolutions of \textbf{10~m, 20~m, and 60~m} depending on 
+  the spectral band. Its free and open-access policy has 
+  significantly accelerated research and operational applications 
+  in remote sensing and agricultural monitoring worldwide.
+
+  \begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{figures/Sentinel-2_global_coverage.png}
+  \caption{Sentinel-2 global coverage }
+  \label{fig:sentinel2_satellite}
+  \end{figure}
+
 
   % ── 2.3.2 ──
-  \subsection{Zoom}
+  \subsection{Spectral Bands and Agricultural Applications}
+  
+  The Sentinel-2 sensor acquires data in \textbf{thirteen spectral} bands specifically designed
+  for vegetation, soil, and water monitoring applications. These bands capture different 
+  physical and biochemical properties of vegetation and are widely used for crop analysis.
 
-  Zoom was used as a video conferencing platform to participate in
-  virtual meetings with the team. It offered a practical and efficient
-  solution for remote communication and collaboration, allowing clear
-  discussions and regular follow-up meetings~\cite{zoom}.
+  The \textbf{visible bands} (Blue, Green, and Red) are mainly used for visual interpretation and vegetation analysis.
+  The \textbf{near-infrared band} is highly sensitive to plant vigor and biomass, while the \textbf{red-edge} bands provide valuable
+  information about chlorophyll concentration and vegetation stress. The \textbf{shortwave infrared} bands are useful for monitoring 
+  moisture content and soil conditions. 
+  
+  Table~\ref{tab:sentinel2_bands} summarizes the main Sentinel-2 spectral bands commonly 
+  used in agricultural applications. 
+
+  \begin{table}[H] 
+      \centering 
+      \caption{Main Sentinel-2 spectral bands used in agriculture.} 
+      \label{tab:sentinel2_bands} 
+      \begin{tabular}{|c|c|c|c|} 
+          \hline 
+          \textbf{Band} & \textbf{Description} & \textbf{Wavelength (nm)} & \textbf{Resolution} \\ 
+          \hline 
+          B2  & Blue               & 490  & 10 m \\ 
+          B3  & Green              & 560  & 10 m \\ 
+          B4  & Red                & 665  & 10 m \\ 
+          B5  & Red Edge 1         & 705  & 20 m \\ 
+          B6  & Red Edge 2         & 740  & 20 m \\ 
+          B7  & Red Edge 3         & 783  & 20 m \\ 
+          B8  & Near Infrared (NIR)& 842  & 10 m \\ 
+          B8A & Narrow NIR         & 865  & 20 m \\ 
+          B11 & SWIR 1             & 1610 & 20 m \\ 
+          B12 & SWIR 2             & 2190 & 20 m \\ 
+          \hline 
+      \end{tabular} 
+  \end{table}
+
+  The availability of red-edge bands represents one of the key advantages of Sentinel-2 for agricultural monitoring.
+  These bands improve the detection of vegetation stress and enhance crop discrimination capabilities compared to older satellite missions.
 
   % ── 2.3.3 ──
-  \subsection{Jira}
+  \subsection{Spatial Indexing and Data Organisation}
+    Efficient spatial organisation of satellite imagery is essential 
+  for large-scale time-series analysis. Two complementary indexing 
+  systems are relevant to this project: the MGRS tile grid used 
+  natively by Sentinel-2, and the quadkey hierarchical indexing 
+  scheme used for cloud-based data management.
+   
+    \subsubsection{The Sentinel-2 Tile System and MGRS Grid}
 
-  Jira, a project management and issue-tracking tool developed by
-  Atlassian, was used to organize tasks, track progress, assign work,
-  set priorities, and manage project workflows. It allowed the team to
-  follow the status of different tasks and ensure that deadlines were
-  respected.
+      Sentinel-2 imagery is organised and distributed using the 
+    \textbf{Military Grid Reference System} (MGRS), a global spatial 
+    indexing framework built on top of the \textbf{Universal Transverse 
+    Mercator} (UTM) projection \cite{esa2015}. The UTM system 
+    divides the Earth into 60 longitudinal zones of 6 degrees 
+    each, numbered 1 to 60 from west to east. Within each zone, 
+    coordinates are expressed in metres --- easting and northing 
+    --- relative to a zone-specific central meridian, minimising 
+    distortion within each zone and ensuring geometric consistency 
+    for pixel-level spatial operations.
 
-  Jira supports several project management methodologies, including
-  Agile, Scrum, and Kanban. It provides features such as boards,
-  backlogs, issues, and sprints, which helped structure the work and
-  monitor progress throughout the internship~\cite{jira}.
+    Under the MGRS system, each UTM zone is further subdivided 
+    into a grid of 100~$\times$~100~km tiles, each identified 
+    by a unique alphanumeric code composed of the UTM zone number, 
+    a latitude band letter, and a two-letter square identifier 
+    --- for example, \texttt{36MTC} and \texttt{36MTD} for tiles 
+    covering Rwanda \cite{esa2015}. Each Sentinel-2 acquisition 
+    is projected and delivered within this fixed tile grid, 
+    ensuring that imagery from different dates is inherently 
+    co-registered and spatially aligned --- a prerequisite for 
+    constructing pixel-wise time series.
 
-  % ── 2.3.4 ──
-  \subsection{Slack}
+    \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/MGRS_GZD.png}
+    \caption{ Military Grid Reference System showing the 6° x 8° grid cells  }
+    \label{fig:MGRS}
+    \end{figure}
 
-  Slack was used as a centralized communication hub for the team. It
-  enabled real-time information sharing, discussions about project
-  updates, direct messaging, and file sharing. Its channel-based
-  organization helped keep conversations structured and accessible.
+    \subsubsection{Quadkey Hierarchical Indexing}
 
-  In addition, the search functionality in Slack channels was
-  particularly useful for debugging and problem solving. It made it
-  possible to quickly retrieve previous discussions or similar internal
-  errors shared by other team members, which saved significant time
-  during development~\cite{slack}.
+    Beyond the MGRS tile system, modern large-scale geospatial 
+    platforms increasingly rely on hierarchical spatial indexing 
+    schemes to efficiently store, query, and retrieve satellite 
+    data at scale. One of the most widely adopted schemes is 
+    the \textbf{quadkey system}, originally introduced by Microsoft for 
+    web mapping applications \cite{openstreetmap2023}.
 
-% ──────────────────────────────────────────
-\section{Project Methodology}
-% ──────────────────────────────────────────
+    The quadkey system subdivides the Earth's surface recursively 
+    into a quadtree of tiles at increasing zoom levels. At each 
+    level, every tile is divided into four equal quadrants --- 
+    top-left (0), top-right (1), bottom-left (2), and 
+    bottom-right (3). A tile at any zoom level is uniquely 
+    identified by a string of digits encoding its hierarchical 
+    position. For example, a tile at zoom level 3 might carry 
+    the quadkey \texttt{021}, meaning it occupies the second 
+    quadrant of the first quadrant of the third quadrant of 
+    the root tile.
+    
+    \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.74\textwidth]{figures/Quadkeys.png}
+    \caption{Quadkey hierarchical tile subdivision at increasing zoom levels.}
+    \label{fig:quadkey}
+    \end{figure}
 
-Throughout the internship, the team followed the Scrum framework, which
-is one of the most widely used frameworks within Agile methodology.
-Scrum helped structure the project into iterative development cycles,
-allowing the team to adapt to changing requirements while maintaining a
-clear focus on delivering valuable increments.
+    This recursive structure offers several practical advantages 
+    for large-scale geospatial data management. The multi-resolution hierarchy 
+    also naturally supports data aggregation across spatial 
+    scales \cite{openstreetmap2023}. In the context of this 
+    project, quadkey indexing is used to partition Sentinel-2 
+    time series data enabling 
+    efficient tile-based processing and scalable retrieval 
+    of pixel observations across Rwanda's territory.
 
-To illustrate this methodology, consider the example of building a
-simple to-do list application. If the product owner prioritizes two
-features for the first sprint, such as adding new tasks and marking tasks
-as completed, the team focuses on implementing these features during the
-sprint. During development, team members review each other's work and
-test the features to verify that they meet the acceptance criteria
-defined at the beginning. At the end of the sprint, a functional
-increment of the application is delivered.
 
-In this project, the product backlog was prioritized according to the
-value and relevance of the tasks. Since some requirements were still
-evolving and could change over time, Scrum was an appropriate approach.
-It supported flexibility, continuous feedback, and progressive
-improvement.
+% ============================================================
+\section{Crop Phenology}
+% ============================================================
 
-Furthermore, the Scrum framework encouraged communication,
-collaboration, and continuous improvement. By following Agile principles,
-the team was able to respond to change, iterate quickly, and work toward
-a high-quality solution aligned with stakeholder expectations.
+Crop phenology refers to the study of cyclic and seasonal biological 
+events in crops and their timing in relation to climate and 
+environmental conditions \cite{de2017}. From a remote sensing 
+perspective, phenology is the key signal that allows satellite 
+time series to discriminate between crop types that may appear 
+spectrally similar at any single point in time but follow 
+distinctly different growth trajectories over a full growing 
+season.
 
-The main Agile principles followed during the project are:
+  % ── 2.4.1 ──
+  \subsection{Phenological Cycles and Temporal Profiles}
+  Each crop type follows a characteristic growth cycle --- from 
+  germination and early vegetative growth, through canopy closure, 
+  flowering, and grain fill, to senescence and harvest. This cycle 
+  produces a distinctive temporal profile of spectral reflectance 
+  when observed repeatedly from satellite, commonly referred to 
+  as a phenological curve \cite{inglada2016}.
 
-\begin{enumerate}
-  \item Customer satisfaction through early and continuous delivery of
-  valuable software.
-
-  \item Welcoming changing requirements, even late in development, in
-  order to support the customer's competitive advantage.
-
-  \item Delivering working software frequently, with a preference for
-  shorter timescales.
-
-  \item Maintaining collaboration between business stakeholders and
-  developers throughout the project.
-
-  \item Building projects around motivated individuals by giving them the
-  environment and support they need and trusting them to get the job done.
-
-  \item Prioritizing face-to-face conversation as an efficient and
-  effective method of communication within the development team.
-
-  \item Considering working software as the primary measure of progress.
-
-  \item Promoting sustainable development so that sponsors, developers,
-  and users can maintain a constant pace.
-
-  \item Maintaining continuous attention to technical excellence and good
-  design.
-
-  \item Valuing simplicity, which means maximizing the amount of work not
-  done.
-
-  \item Allowing the best architectures, requirements, and designs to
-  emerge from self-organizing teams.
-
-  \item Reflecting regularly on how to become more effective, then
-  adjusting the team's behavior accordingly~\cite{agile}.
-\end{enumerate}
-
-\begin{figure}[h]
+  These temporal profiles are the fundamental signal exploited 
+  by time-series classification approaches. Crops that are 
+  spectrally similar at a single date may exhibit clearly 
+  distinct seasonal trajectories --- differing in the timing 
+  of green-up, peak greenness, amplitude, and senescence date 
+  --- making temporal information essential for accurate 
+  multi-class crop mapping \cite{defourny2019}. Key phenological 
+  metrics such as start of season, end of season, peak greenness, 
+  seasonal amplitude, and seasonal integral serve as compact 
+  and discriminative features encoding crop-type-specific 
+  growth dynamics.
+ 
+  \begin{figure}[H]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/agile_methodology}
-  \caption{Agile Methodology}
-  \label{fig:agile_methodology}
-\end{figure}
+  \includegraphics[width=0.7\textwidth]{figures/crop_phenology.png}
+  \caption{Typical NDVI temporal profile for winter wheat 
+  over  growing seasons}
+  \label{fig:phenological_curves}
+  \end{figure}
+  
+  % ── 2.4.2 ──
+  \subsection{Crop Calendar in Rwanda}
 
-In my case, I also had additional meetings with different team members.
-These meetings were mainly opportunities to discuss tasks in more detail,
-clarify technical points, and follow the progress of the work.
+  Agriculture in Rwanda is primarily organised around two major 
+  cropping seasons, commonly referred to as \textbf{Season A} and \textbf{Season B}, 
+  strongly influenced by rainfall patterns and climatic conditions 
+  \cite{minagri2018}. Season A generally begins in September and 
+  ends in February, while Season B extends from February to August. 
+  Certain regions also support an additional short agricultural 
+  season known as Season C, typically practised in irrigated 
+  areas between July and August.
 
-% ──────────────────────────────────────────
-\section{Gantt Chart}
-% ──────────────────────────────────────────
+  The temporal distribution of planting and harvesting periods 
+  varies across crop types and geographical regions, reflecting 
+  Rwanda's diverse agro-ecological zones. Major crops cultivated 
+  in Rwanda include \textbf{maize, beans, cassava, Irish potato, rice, 
+  banana, and sweet potato} \cite{minagri2018}. Understanding 
+  the crop calendar is essential for interpreting satellite 
+  time-series data, as crop spectral responses are directly 
+  linked to their phenological development stages. The overlap 
+  between rainy seasons and cropping periods also introduces 
+  persistent cloud cover, creating temporal gaps in Sentinel-2 
+  observations that must be addressed in the preprocessing 
+  pipeline.
 
-A Gantt chart, named after its creator Henry L. Gantt, is a visual tool
-used in project management to represent tasks along a timeline. It uses
-horizontal bars to show the duration of each task, the dependencies
-between tasks, and the overall schedule of a project.
-
-This tool makes complex project planning easier to understand by
-presenting tasks, milestones, and deadlines in a clear visual format. It
-helps project managers and team members monitor progress, identify
-delays, and keep the project aligned with its expected timeline.
-
-In the context of this internship, the Gantt chart summarizes the main
-phases of the project during the first four months, from the onboarding
-process to the writing of this report.
-
-\begin{figure}[h]
+  \begin{figure}[H]
   \centering
-  %\includegraphics[width=0.9\textwidth]{figures/gantt_chart}
-  \fbox{\parbox{0.9\textwidth}{\centering Placeholder for Gantt Chart}}
-  \caption{Gantt Chart}
-  \label{fig:gantt_chart}
-\end{figure}
+  \includegraphics[width=0.5\textwidth]{figures/rwanda_crop_calendar.png}
+  \caption{Crop calendar for Rwanda illustrating Season A, Season B, 
+  and Season C with their associated crops and rainfall patterns}
+  \label{fig:rwanda_crop_calendar}
+  \end{figure}
+
+
+% ============================================================
+\section{Literature Review}
+% ============================================================
+
+Crop type mapping using satellite imagery has been an active 
+area of research over the past two decades, driven by advances 
+in satellite data availability, machine learning, and cloud 
+computing. This section reviews the existing literature 
+relevant to this project, organised around three major 
+themes: snapshot-based classification approaches, 
+time-series-based methods, and the specific challenges 
+of rare class detection and imbalanced learning in 
+agricultural remote sensing. For each theme, key 
+contributions are synthesised, their limitations 
+identified, and their relevance to the approach 
+adopted in this project discussed.
+
+
+  % ── 2.5.1 ──
+  \subsection{Snapshot-Based Approaches}
+  Early work in satellite-based crop mapping relied predominantly 
+  on single-date or snapshot imagery, where classification is 
+  performed using spectral information from one or a small number 
+  of acquisition dates. While computationally straightforward, 
+  these approaches are fundamentally limited by the fact that 
+  a single image captures only one moment in a crop's growth 
+  cycle, making it difficult to distinguish spectrally similar 
+  crops that differ primarily in their temporal behaviour.
+
+    \subsubsection{Traditional Machine Learning and Ensemble Methods}
+    Traditional machine learning methods --- particularly \textbf{Support 
+    Vector Machines} (SVM), \textbf{Random Forest} (RF), and \textbf{gradient 
+    boosting} approaches --- have been widely applied to crop 
+    mapping using single-date or multi-date optical imagery 
+    \cite{mountrakis2011}. These methods operate on handcrafted 
+    spectral features derived from individual bands or vegetation 
+    indices, and have demonstrated competitive performance in 
+    regions with simple cropping systems and low cloud cover.
+
+    \textbf{Random Forest} in particular has become a standard baseline 
+    for crop classification tasks due to its robustness to 
+    noisy features, ability to handle high-dimensional inputs, 
+    and built-in feature importance estimation \cite{breiman2001}. 
+    \textbf{Gradient boosting} methods such as \textbf{XGBoost} have more recently 
+    demonstrated superior performance in tabular classification 
+    tasks, achieving state-of-the-art results on several 
+    remote sensing benchmarks \cite{chen2016}. However, both 
+    approaches applied to single-date imagery are inherently 
+    limited: they cannot capture the temporal dynamics that 
+    distinguish crop types with similar spectral signatures 
+    at any given moment.
+
+    \subsubsection{Deep Learning Methods for Spatial Classification}
+    
+    The advent of deep learning brought convolutional neural 
+    networks (CNNs) to remote sensing, enabling the automatic 
+    extraction of spatial features from satellite imagery without 
+    manual feature engineering \cite{lecun2015}. CNN-based 
+    approaches applied to single-date imagery have shown strong 
+    performance in land cover mapping tasks, particularly when 
+    large labelled datasets are available \cite{maggiori2017}.
+
+    For crop mapping specifically, CNNs have been applied to 
+    high-resolution imagery to exploit spatial context --- 
+    field shape, texture, and neighbourhood relationships 
+    --- as complementary discriminative information beyond 
+    spectral signatures alone \cite{kussul2017}. Despite 
+    these advances, CNN-based snapshot approaches share 
+    the same fundamental limitation as traditional methods: 
+    they remain blind to the temporal dimension of crop 
+    growth, which is often the most discriminative signal 
+    for crop type identification.
+
+
+    \subsubsection{Challenges and Limitations}
+
+    Snapshot-based approaches face several inherent limitations 
+    that restrict their applicability in complex agricultural 
+    contexts such as Rwanda. First, the reliance on a single 
+    acquisition date introduces high sensitivity to atmospheric 
+    conditions, cloud cover, and phenological variability 
+    between years --- a single cloudy image can render an 
+    entire classification pipeline unusable \cite{inglada2016}. 
+    Second, spectrally similar crops that differ primarily 
+    in their growth timing cannot be reliably distinguished 
+    from a single observation. Third, the class imbalance 
+    typical of smallholder landscapes --- where dominant 
+    crops vastly outnumber minority crops --- is particularly 
+    difficult to address without the additional discriminative 
+    power provided by temporal information. These limitations 
+    motivated a shift toward time-series-based approaches.
+
+  % ── 2.5.2 ── 
+  \subsection{Time-Series Based Approaches}
+  The availability of dense satellite time series --- made 
+  possible by missions such as Sentinel-2 --- has enabled 
+  a fundamental shift in crop mapping methodology. Rather 
+  than relying on spectral snapshots, time-series approaches 
+  exploit the full temporal trajectory of crop growth, 
+  capturing phenological dynamics that are highly 
+  discriminative across crop types \cite{inglada2016}.
+
+
+  \subsubsection{Classical Time-Series Classification}
+
+    Early time-series classification methods for crop mapping 
+    were based on template matching and distance-based 
+    approaches. \textbf{Dynamic Time Warping} (DTW), which measures 
+    similarity between temporal sequences by allowing 
+    elastic alignment in time, was among the first methods 
+    applied to satellite phenological curves for crop 
+    discrimination \cite{maus2016}. While effective for 
+    simple cropping systems, DTW-based methods scale poorly 
+    to large datasets and struggle with noisy or 
+    gap-filled time series.
+
+    \textbf{Threshold-based} phenological methods --- which classify 
+    pixels based on the timing and magnitude of key 
+    phenological events such as start of season, peak, 
+    and end of season --- have also been widely used 
+    for crop mapping in data-sparse environments 
+    \cite{barcanibar2020}. These approaches are 
+    interpretable and computationally efficient but 
+    require careful calibration and are sensitive 
+    to temporal gaps introduced by cloud cover.
+
+    \subsubsection{Deep Learning for Time-Series: LSTM and GRU}
+
+    \textbf{Recurrent neural networks (RNNs)}, and in particular 
+    \textbf{Long Short-Term Memory} (LSTM) networks and \textbf{Gated 
+    Recurrent Units} (GRUs), have emerged as the dominant 
+    deep learning architectures for satellite time-series 
+    classification \cite{hochreiter1997}. Unlike classical 
+    methods, these architectures learn temporal dependencies 
+    directly from data, without requiring explicit 
+    phenological feature engineering.
+
+    \textcite{russwurm2017} were among the first to apply 
+    LSTM networks to Sentinel-2 time series for crop 
+    mapping, demonstrating significant improvements over 
+    Random Forest baselines on European agricultural 
+    landscapes. Subsequent studies confirmed that 
+    recurrent architectures consistently outperform 
+    classical machine learning methods when sufficient 
+    temporal observations are available, particularly 
+    for minority crop classes with distinctive but 
+    short-duration phenological signals \cite{interdonato2019}.
+
+    GRU-based models have been shown to achieve performance 
+    comparable to LSTM while requiring fewer parameters 
+    and training time, making them particularly attractive 
+    for large-scale operational applications 
+    \cite{cho2014}. More recently, attention-based 
+    mechanisms and transformer architectures have 
+    been explored for satellite time-series 
+    classification, though their advantage over 
+    well-tuned recurrent models remains dataset-dependent 
+    \cite{garnot2020}.
+
+    \subsubsection{Phenology-Based Temporal Classification}
+
+    A complementary line of research has focused on 
+    extracting explicit phenological features from 
+    satellite time series --- such as start of season, 
+    end of season, peak greenness, seasonal amplitude, 
+    and seasonal integral --- and using these as inputs 
+    to classical machine learning classifiers 
+    \cite{inglada2016}. This hybrid approach combines 
+    the interpretability of phenological metrics with 
+    the discriminative power of supervised learning, 
+    and has demonstrated strong performance in 
+    smallholder contexts where training data is 
+    limited \cite{defourny2019}.
+
+    Studies applying this approach to sub-Saharan 
+    African agricultural landscapes have highlighted 
+    the importance of carefully handling temporal 
+    gaps introduced by cloud cover before extracting 
+    phenological features, as gap-filling quality 
+    directly affects the reliability of derived 
+    metrics \cite{rs2020rwanda}.
+
+  % ── 2.5.3 ── 
+  \subsection{Comparative Analysis and Positioning of Our Work}
+
+  The reviewed literature highlights a clear evolution in crop 
+  type mapping methodology --- from simple snapshot-based 
+  approaches relying on single-date spectral information, 
+  to sophisticated time-series methods that exploit the 
+  full temporal trajectory of crop growth. While significant 
+  progress has been made, several challenges remain 
+  insufficiently addressed, particularly in the context 
+  of smallholder agriculture in sub-Saharan Africa.
+
+  Most existing studies are conducted in temperate agricultural 
+  landscapes characterised by large, regular fields and 
+  relatively low cloud cover. Few works explicitly address 
+  the combination of challenges present in Rwanda: a bimodal 
+  cropping calendar, persistent cloud cover during both 
+  growing seasons, extreme field fragmentation, and severe 
+  class imbalance between dominant and minority crops.
+
+  Furthermore, the majority of published pipelines report 
+  overall accuracy metrics that are dominated by majority 
+  classes, masking poor performance on rare crop types. 
+  The challenge of detecting minority crops --- which are 
+  often the most important from a food security perspective 
+  --- remains an open problem that receives limited 
+  attention in the literature.
+
+  This project is positioned at the intersection of these 
+  gaps. It targets a real-world, national-scale crop 
+  mapping problem in Rwanda, explicitly addressing the 
+  challenges of cloud cover, class imbalance, and rare 
+  crop detection within a single end-to-end pipeline. 
+  By comparing both classical machine learning and deep 
+  learning approaches on the same dataset and evaluation 
+  framework, it contributes a rigorous and reproducible 
+  benchmark for crop mapping in challenging smallholder 
+  contexts.
+
+
+
 
 % ──────────────────────────────────────────
 \section{Conclusion}
 % ──────────────────────────────────────────
 
-This chapter presented the organizational dimensions of the project. It
-described the internship process, including onboarding and training, as
-well as the tools used to support communication, documentation, and task
-management.
+This chapter presented the theoretical foundations and 
+existing literature relevant to crop type mapping using 
+Sentinel-2 satellite time series. The first part introduced 
+the principles of remote sensing, the characteristics 
+of Sentinel-2 imagery, and the role of crop phenology 
+as the key temporal signal for crop discrimination. 
+the second part reviewed existing approaches to crop mapping, 
+from snapshot-based methods to time-series and deep 
+learning techniques, identifying their strengths and 
+limitations.
 
-The chapter also introduced the Scrum methodology adopted during the
-project and explained how Agile principles helped structure the work and
-support collaboration. Finally, the Gantt chart provided an overview of
-the project timeline. These organizational elements contributed to a
-clearer workflow and helped ensure the successful progress of the
-internship project.
+The review identified three key gaps in the existing 
+literature: insufficient attention to rare class 
+detection, the widespread neglect of spatial leakage 
+through boundary pixels, and a lack of studies 
+addressing Rwanda's specific agricultural context. 
+The methodology presented in the following chapter 
+is designed to address each of these gaps through 
+a rigorous, end-to-end crop classification pipeline 
+built on Sentinel-2 time series data processed on 
+Oracle Cloud Infrastructure.
