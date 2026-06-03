@@ -39,10 +39,17 @@
 \definecolor{pageborder}  {RGB}{220, 215, 205} % linen / warm off-white
 
 % ─────────────────────────────────────────────
+%  REPORT METADATA
+% ─────────────────────────────────────────────
+\newcommand{\SupervisorName}{Soukaina Bouhsissin}
+\newcommand{\UniversityName}{ENSAM}
+
+% ─────────────────────────────────────────────
 %  GRAPHICS / TIKZ
 % ─────────────────────────────────────────────
 \usepackage{tikz}
-\usetikzlibrary{decorations.pathmorphing, patterns, calc}
+\usetikzlibrary{decorations.pathmorphing, patterns, calc, positioning, arrows.meta, shapes.geometric, fit, backgrounds}
+\usepackage{pgfgantt}
 \usepackage{graphicx}
 \usepackage{float}
 
@@ -181,6 +188,7 @@
 \usepackage{microtype}
 \usepackage{setspace}
 \usepackage{booktabs}
+\usepackage{longtable}
 \usepackage{caption}
 \captionsetup{font=small, labelfont={bf,color=sectioncolor}}
 \usepackage{lipsum}
@@ -290,6 +298,7 @@
 
 % ── Main Matter ──────────────────────────────
 \mainmatter
+\input{chapters/00_general_introduction}
 \input{chapters/chapter1}
 \input{chapters/chapter2}
 \input{chapters/chapter3}

@@ -1,83 +1,2007 @@
 % ============================================================
 %  CHAPTER 3 — Methodology and Design
+%  Harvard Dataset Crop Multi-Classification
+%  Based on confirmed notebook outputs and project files
 % ============================================================
+
 \chapter{Methodology and Design}
-\lipsum[35]
+\label{ch:method}
 
-\section{Section One}
-\lipsum[36]
+Accurate and timely crop type mapping is a critical component of modern
+food security intelligence systems, yet it remains a persistent challenge
+in smallholder farming landscapes such as Rwanda, where field sizes are
+small, crop diversity is high, and cloud cover frequently limits satellite
+observation. This chapter presents a rigorous, end-to-end methodology for
+multi-class crop type mapping using Sentinel-2 multispectral time series
+data and supervised machine learning — a pipeline designed not only to
+produce high-quality classification outputs, but to do so in a way that
+is reproducible, methodologically transparent, and operationally relevant
+to the Rwanda Space Agency and the Ministry of Agriculture. The approach
+combines field-collected ground truth data from the Harvard Dataverse with
+Sentinel-2 imagery processed through a multi-stage quality control chain,
+a rich feature engineering framework encompassing both statistical and
+phenological descriptors, and a comparative model evaluation spanning
+classical ensemble methods and deep learning sequence architectures. Each
+methodological decision is grounded in physical reasoning, agronomic
+context, or empirical evidence from the data, and is described in terms
+of its purpose, inputs, outputs, and connection to subsequent stages.
 
-  \subsection{Subsection One}
-  \lipsum[37]
 
-  \subsection{Subsection Two}
-  \lipsum[38]
+% ============================================================
+\section{Methodology Overview and Pipeline}
+\label{sec:pipeline}
+% ============================================================
 
-    \subsubsection{Subsubsection One}
-    \lipsum[39]
+Figure~\ref{fig:pipeline} provides a high-level schematic of the complete
+methodology pipeline, from raw data acquisition to final model evaluation.
 
-    \subsubsection{Subsubsection Two}
-    \lipsum[40]
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0.95cm and 0.9cm,
+    stage/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=#1!85!black,
+        fill=#1!10,
+        line width=0.8pt,
+        minimum width=3.8cm,
+        minimum height=0.9cm,
+        align=center,
+        text=chaptercolor,
+        font=\small\bfseries
+    },
+    arrow/.style={
+        -{Stealth[length=2.5mm]},
+        line width=0.8pt,
+        draw=accentgold!90!black
+    },
+    groupbox/.style={
+        rounded corners=5pt,
+        draw=#1!75!black,
+        fill=#1!4,
+        line width=0.9pt,
+        inner sep=8pt
+    },
+    grouptext/.style={
+        font=\small\bfseries,
+        text=chaptercolor
+    }
+]
 
-      \paragraph{Paragraph a}
-      \lipsum[41]
+% ============================================================
+% Row 1: Data and preprocessing
+% ============================================================
+\node[stage=accentgold] (data) {Ground Truth Polygons\\+ Sentinel-2 Time Series};
+\node[stage=accentgold, right=of data] (schema) {Schema Validation\\+ Date Parsing};
+\node[stage=accentgold, right=of schema] (season) {Season B Filter\\Feb--Aug 2025};
+\node[stage=accentgold, right=of season] (dedup) {Duplicate Removal\\+ Zero-Band Check};
 
-      \paragraph{Paragraph b}
-      \lipsum[42]
+% ============================================================
+% Row 2: Cleaning and quality control
+% ============================================================
+\node[stage=OliveGreen, below=1.35cm of dedup] (label) {Label Standardisation\\+ Monocrop Filtering};
+\node[stage=OliveGreen, left=of label] (geometry) {Polygon Geometry QC\\Compactness Check};
+\node[stage=OliveGreen, left=of geometry] (scaling) {Band and Quality Scaling\\Bands, AOT, CLP};
+\node[stage=OliveGreen, left=of scaling] (quality) {Quality Masking\\SCL, AOT, CLP};
 
-\section{Section Two}
-\lipsum[43]
+% ============================================================
+% Row 3: Temporal reconstruction and features
+% ============================================================
+\node[stage=RoyalBlue, below=1.35cm of quality] (boundary) {Boundary Conflict Check\\Same-Date Multi-Label};
+\node[stage=RoyalBlue, right=of boundary] (gap) {Gap Analysis\\+ Linear Interpolation};
+\node[stage=RoyalBlue, right=of gap] (vi) {Vegetation Indices\\Greenness, Moisture, Red-Edge};
+\node[stage=RoyalBlue, right=of vi] (features) {Feature Engineering\\Statistical + Phenological};
 
-  \subsection{Subsection One}
-  \lipsum[44]
+% ============================================================
+% Row 4: Modelling
+% ============================================================
+\node[stage=BurntOrange, below=1.35cm of features] (split) {Train--Test Split\\QUADKEY + Field Check};
+\node[stage=BurntOrange, left=of split] (select) {Feature Selection\\ANOVA, RF Importance, RFECV};
+\node[stage=BurntOrange, left=of select] (imbalance) {Imbalance Handling\\Class Weights, SMOTE, ADASYN};
+\node[stage=BurntOrange, left=of imbalance] (models) {Model Development\\Classical ML + Deep Learning};
 
-  \subsection{Subsection Two}
-  \lipsum[45]
+% ============================================================
+% Row 5: Evaluation and deployment
+% ============================================================
+\node[stage=BrickRed, below=1.35cm of models] (eval) {Evaluation\\Macro F1, PR, ROC, Confusion};
+\node[stage=BrickRed, right=of eval] (robust) {Spatial Robustness\\Field/Group-Level Check};
+\node[stage=BrickRed, right=of robust] (deploy) {Deployment Preparation\\Saved Model Package};
+\node[stage=BrickRed, right=of deploy] (results) {Results and Diagnostics\\Final Outputs};
 
-    \subsubsection{Subsubsection One}
-    \lipsum[46]
+% ============================================================
+% Arrows
+% ============================================================
+\draw[arrow] (data) -- (schema);
+\draw[arrow] (schema) -- (season);
+\draw[arrow] (season) -- (dedup);
 
-    \subsubsection{Subsubsection Two}
-    \lipsum[47]
+\draw[arrow] (dedup.south) -- (label.north);
+\draw[arrow] (label) -- (geometry);
+\draw[arrow] (geometry) -- (scaling);
+\draw[arrow] (scaling) -- (quality);
 
-      \paragraph{Paragraph a}
-      \lipsum[48]
+\draw[arrow] (quality.south) -- (boundary.north);
+\draw[arrow] (boundary) -- (gap);
+\draw[arrow] (gap) -- (vi);
+\draw[arrow] (vi) -- (features);
 
-      \paragraph{Paragraph b}
-      \lipsum[49]
+\draw[arrow] (features.south) -- (split.north);
+\draw[arrow] (split) -- (select);
+\draw[arrow] (select) -- (imbalance);
+\draw[arrow] (imbalance) -- (models);
 
-% ── Sample figure ──
-\begin{figure}[h]
-  \centering
-  \begin{tikzpicture}
-    \draw[chaptercolor, thick] (0,0) rectangle (6,3);
-    \node[gray] at (3,1.5) {\textit{[Figure placeholder]}};
-  \end{tikzpicture}
-  \caption{Sample figure in Chapter~3}
-  \label{fig:sample1}
+\draw[arrow] (models.south) -- (eval.north);
+\draw[arrow] (eval) -- (robust);
+\draw[arrow] (robust) -- (deploy);
+\draw[arrow] (deploy) -- (results);
+
+% ============================================================
+% Group boxes on background layer
+% ============================================================
+\begin{pgfonlayer}{background}
+    \node[groupbox=accentgold, fit=(data)(schema)(season)(dedup),
+          label={[grouptext]above:Data Preparation}] {};
+
+    \node[groupbox=OliveGreen, fit=(quality)(scaling)(geometry)(label),
+          label={[grouptext]above:Cleaning and Quality Control}] {};
+
+    \node[groupbox=RoyalBlue, fit=(boundary)(gap)(vi)(features),
+          label={[grouptext]above:Temporal Reconstruction and Feature Engineering}] {};
+
+    \node[groupbox=BurntOrange, fit=(models)(imbalance)(select)(split),
+          label={[grouptext]above:Model Development}] {};
+
+    \node[groupbox=BrickRed, fit=(eval)(robust)(deploy)(results),
+          label={[grouptext]above:Evaluation and Deployment}] {};
+\end{pgfonlayer}
+
+\end{tikzpicture}
+}
+\caption{End-to-end methodology pipeline for multi-class crop type mapping using Sentinel-2 time series and ground reference crop polygons.}
+\label{fig:pipeline}
 \end{figure}
 
-% ── Sample table ──
-\begin{table}[h]
-  \centering
-  \caption{Sample table in Chapter~3}
-  \label{tab:sample1}
-  \begin{tabular}{@{}llr@{}}
-    \toprule
-    \textbf{Column A} & \textbf{Column B} & \textbf{Column C} \\
-    \midrule
-    Item 1 & Description & 42 \\
-    Item 2 & Description & 87 \\
-    \bottomrule
-  \end{tabular}
+Each block in Figure~\ref{fig:pipeline} corresponds to a dedicated subsection
+in this chapter. The pipeline is strictly sequential: each stage receives
+clean, validated output from the preceding stage, ensuring reproducibility and
+traceability throughout the workflow. A fixed random seed (\texttt{RANDOM\_STATE~=~42})
+is applied at every stochastic step to guarantee deterministic results.
+
+
+% ============================================================
+\section{Datasets}
+\label{sec:datasets}
+% ============================================================
+
+Two ground-truth sources were considered during the project. The first was
+provided through the Rwanda government and Oracle collaboration, but it
+contained several data-quality issues that limited its suitability for the
+final modelling workflow. For this reason, the final report
+focuses on the Harvard Dataverse Rwanda crop mapping dataset, which provides
+the ground-truth labels used for the methodology described in this chapter.
+
+The Harvard dataset was spatially joined with Sentinel-2 time series by the
+data engineering team, producing the QUADKEY-indexed dataset used throughout
+this work.
+
+
+% ------------------------------------------------------------
+\subsection{Harvard Dataverse Rwanda Crop Mapping Dataset}
+\label{subsec:harvard}
+% ------------------------------------------------------------
+
+The primary dataset used in this study is the Rwanda Crop Mapping Ground
+Truth dataset published on Harvard Dataverse~\cite{harvard2025}. It was
+collected between 6~May~2025 and 7~June~2025 in support of a remote
+sensing-based crop monitoring system funded by GIZ~Rwanda and implemented
+by the Alliance of Bioversity and CIAT under the supervision of the Rwanda
+Space Agency and the Ministry of Agriculture and Animal Resources
+(MinAgri)~\cite{harvard2025}.
+
+The dataset covers four administrative districts: Nyagatare, Ruhango,
+Musanze, and Nyabihu. Field enumerators collected crop observations using
+the KoBo~Toolbox platform, recording GPS-referenced points with attribute
+photographs (field pictures, attributes F15/F15a). Homogeneous field
+polygons were then delineated around pixels representing particular crop
+types using satellite imagery. The geographic projection is WGS84.
+
+The raw Harvard dataset contains labelled field polygons for multiple crop
+types, including both monocrop and intercrop entries. In the Sentinel-2
+joined dataset used for modelling, the classification target is the textual
+\texttt{landcover} column. This column is standardised and then filtered to
+retain only the four monocrop classes used in this study, as described in
+Section~\ref{subsec:label_std}. When joined with Sentinel-2 time series at
+zoom level~22, the raw dataset contains 1,788,552 observations across
+27 columns.
+
+\subsubsection*{Season B Alignment}
+\label{subsubsec:seasonb}
+
+Temporal filtering to the Season~B window (February through August) is
+applied immediately after data loading because the dataset documentation
+explicitly states that ground-truth collection targeted Season~B~2025.
+Retaining observations outside this agronomic window would introduce
+phenological noise from other seasons and risk mislabelling pixels that
+do not correspond to the intended crop growth cycle. This filter is
+therefore a direct methodological requirement imposed by the dataset's
+collection context, not an arbitrary choice.
+
+
+% ------------------------------------------------------------
+\subsection{Dataset Schema and Column Descriptions}
+\label{subsec:schema}
+% ------------------------------------------------------------
+
+Table~\ref{tab:columns} describes the columns present in the raw
+Sentinel-2 joined dataset as loaded into the pipeline. Columns are grouped
+by their role in the workflow: \textbf{Spectral Signal} columns provide the
+raw reflectance information from which vegetation indices and features are
+computed; \textbf{Target} identifies the crop label to be predicted;
+\textbf{Quality Flag} columns are used to mask unreliable observations;
+\textbf{Metadata} columns provide spatial, temporal, or polygon identifiers;
+and \textbf{Derived} columns are computed during preprocessing to support
+temporal analysis.
+
+\small
+\setlength{\LTpre}{6pt}
+\setlength{\LTpost}{6pt}
+\begin{longtable}{@{}p{2.6cm}p{1.4cm}p{1.6cm}p{7.4cm}@{}}
+\caption{Dataset column descriptions, data types, and roles.}
+\label{tab:columns}\\
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Role} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\caption[]{Dataset column descriptions, data types, and roles (continued).}\\
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Role} & \textbf{Description} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\textit{Continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{LONGITUDE} & float64 & Metadata &
+    WGS84 longitude of the pixel centroid. Used for spatial distribution
+    plots; not a model input. \\
+\addlinespace
+\texttt{LATITUDE} & float64 & Metadata &
+    WGS84 latitude of the pixel centroid. Used for zoom-level ground
+    resolution calculation and spatial diagnostics. \\
+\addlinespace
+\texttt{B01--B12, B8A}
+    & int32 & Spectral Signal &
+    Sentinel-2 Level-2A spectral reflectance bands stored as scaled
+    integers (Digital Numbers). Wavelengths span 443~nm (B01, coastal
+    aerosol) to 2190~nm (B12, SWIR-2), covering the visible, red-edge,
+    near-infrared, and shortwave infrared regions. These bands are the
+    primary input to all vegetation index formulas and statistical feature
+    extraction. Scaling to physical reflectance is described in
+    Section~\ref{subsec:scaling}. \\
+\addlinespace
+\texttt{AOT} & int32 & Quality Flag &
+    Aerosol Optical Thickness at 550~nm, encoded as a scaled integer.
+    Used to identify and mask observations affected by elevated aerosol
+    loading. \\
+\addlinespace
+\texttt{SCL} & int32 & Quality Flag &
+    Sentinel-2 Scene Classification Layer. A per-pixel quality label
+    generated by the Sen2Cor processor (see Table~\ref{tab:scl}).
+    Used to identify and mask cloud, shadow, and other non-surface pixels. \\
+\addlinespace
+\texttt{CLP} & int32 & Quality Flag &
+    Cloud Probability (0--255, 8-bit). Used to mask observations with
+    elevated cloud contamination probability. \\
+\addlinespace
+\texttt{NDVI} & float64 & Derived &
+    Normalised Difference Vegetation Index, pre-computed and included
+    in the raw dataset. Values lie in $[-1, 1]$ by definition. \\
+\addlinespace
+\texttt{TRUECOLOR\_R/G/B} & int32 & Metadata &
+    Red, green, and blue channels of an 8-bit true-colour composite.
+    Used for visualisation only; not fed to any model. \\
+\addlinespace
+\texttt{QUADKEY} & str & Metadata &
+    Bing Maps QUADKEY tile identifier at zoom level~22. The fundamental
+    spatial unit of analysis throughout the pipeline; used for feature
+    aggregation and train/test splitting. See Section~\ref{sec:quadkey}. \\
+\addlinespace
+\texttt{START\_DATE} & datetime64 & Metadata &
+    Sentinel-2 acquisition date (start of 7-day compositing window).
+    Parsed to \texttt{datetime64[ns]} and used for temporal filtering,
+    weekly deduplication, and interpolation. \\
+\addlinespace
+\texttt{END\_DATE} & datetime64 & Metadata &
+    End of the 7-day compositing window. Used for date validation. \\
+\addlinespace
+\texttt{landcover} & str & Target &
+    Crop class label as collected in the field (raw string). Standardised
+    to uppercase and whitespace-normalised during preprocessing. The
+    classes retained for classification are determined in
+    Section~\ref{subsec:label_std}. \\
+\addlinespace
+\texttt{wkt} & str & Metadata &
+    Well-Known Text (WKT) geometry string of the source field polygon.
+    Used for compactness quality control
+    (Section~\ref{subsec:compactness}) and boundary pixel detection. \\
+\addlinespace
+\texttt{id} & int32 & Metadata &
+    Numeric field identifier linking each QUADKEY to its source
+    ground-truth polygon. Used as the grouping variable for field-level
+    train/test splitting. \\
+\addlinespace
+\texttt{year} & int16 & Derived &
+    ISO calendar year derived from \texttt{START\_DATE}. Used for
+    weekly coverage diagnostics. \\
+\addlinespace
+\texttt{week} & int16 & Derived &
+    ISO calendar week number derived from \texttt{START\_DATE}. Used
+    for temporal deduplication. \\
+\end{longtable}
+\normalsize
+
+
+% ------------------------------------------------------------
+\subsubsection{Sentinel-2 Scene Classification Layer (SCL)}
+\label{subsubsec:scl}
+% ------------------------------------------------------------
+
+The Scene Classification Layer (SCL) is a per-pixel quality assessment
+product generated automatically by the Sentinel-2 Level-2A processing
+chain (Sen2Cor)~\cite{mainknorn2017sen2cor}. It assigns each pixel to one
+of twelve land surface or atmospheric categories based on spectral
+thresholds and spatial context.
+Table~\ref{tab:scl} lists all SCL classes and their meanings.
+
+\begin{table}[H]
+\centering
+\caption{Sentinel-2 Scene Classification Layer (SCL) class definitions.}
+\label{tab:scl}
+\begin{tabular}{@{}clp{8cm}@{}}
+\toprule
+\textbf{SCL Value} & \textbf{Class Name} & \textbf{Meaning} \\
+\midrule
+0  & No Data              & Missing or out-of-swath pixel \\
+1  & Saturated / Defective & Sensor saturation or bad pixel \\
+2  & Dark Area Pixels     & Topographic shadow or dark surface \\
+3  & Cloud Shadows        & Shadow cast by clouds \\
+4  & Vegetation           & Healthy vegetated surface \\
+5  & Bare Soils           & Exposed soil or bare ground \\
+6  & Water                & Open water surface \\
+7  & Unclassified         & Could not be assigned to any class \\
+8  & Cloud (medium prob.) & Medium-probability cloud \\
+9  & Cloud (high prob.)   & High-probability cloud \\
+10 & Thin Cirrus          & Semi-transparent high-altitude cloud \\
+11 & Snow or Ice          & Snow or ice-covered surface \\
+\bottomrule
+\end{tabular}
 \end{table}
 
-% ── Sample listing ──
-\begin{lstlisting}[language=Python, caption={Sample Python listing}]
-# Placeholder code
-def hello_world():
-    """Print a greeting."""
-    print("Hello, World!")
+Only SCL classes 4 (Vegetation) and 5 (Bare Soils) are defined as
+acceptable in this study (\texttt{GOOD\_SCL} = (4,~5)). This choice is
+grounded in the modelling objective: crop classification requires
+observations that correspond to actual land surfaces, free from
+atmospheric and sensor contamination. Pixels classified as clouds, cloud
+shadows, water, or defective are spectrally unreliable and would introduce
+systematic noise into the time series if retained.
 
-hello_world()
-\end{lstlisting}
+Observations failing the SCL test are not immediately removed from the
+dataset. Instead, their spectral band values are set to \texttt{NaN},
+preserving the regular 7-day temporal grid of each QUADKEY's time series.
+This enables subsequent linear interpolation to recover plausible spectral
+values at masked timesteps (see Section~\ref{subsec:interpolation}).
+Removing rows outright would create irregular time series incompatible
+with phenological feature extraction.
+
+
+% ------------------------------------------------------------
+\subsection{Band Value Scaling and Normalisation}
+\label{subsec:scaling}
+% ------------------------------------------------------------
+
+Raw Sentinel-2 Level-2A products store surface reflectance as scaled
+integers (Digital Numbers, DNs) rather than physical reflectance values.
+Scaling to physical units is a mandatory preprocessing step for two
+reasons: (1)~it ensures that spectral values are interpretable in physical
+terms (reflectance in $[0,1]$), and (2)~it ensures feature-scale
+consistency, which is critical for distance-based models, gradient-based
+optimisers in deep learning, and any cross-band arithmetic operation
+(e.g., vegetation index computation).
+
+Three scaling operations are applied, each with a distinct physical
+justification:
+
+\paragraph{Sentinel-2 spectral bands (B01--B12, B8A):}
+\begin{equation}
+\label{eq:band_scale}
+R_{\lambda} = \frac{\mathrm{DN}_{\lambda}}{10{,}000}
+\end{equation}
+Sentinel-2 Level-2A products encode surface reflectance with a
+quantisation factor of 10{,}000: a true reflectance of 1.0 is stored as
+the integer 10{,}000, and 0.5 as 5{,}000. Dividing by 10{,}000 converts
+each band into its true reflectance value in the range $[0,1]$. This is
+the standard convention documented in the Sentinel-2 product
+specification~\cite{esa2021s2}.
+
+\paragraph{Aerosol Optical Thickness (AOT):}
+\begin{equation}
+\label{eq:aot_scale}
+\mathrm{AOT}_{\text{scaled}} = \frac{\mathrm{AOT}_{\text{DN}}}{1{,}000}
+\end{equation}
+The AOT column is encoded as an integer with a scale factor of 1{,}000,
+consistent with the Sentinel-2 Level-2A product encoding for atmospheric
+parameters. Dividing by 1{,}000 recovers the physical aerosol optical
+depth at 550~nm. Values above 0.3 after scaling indicate elevated aerosol
+loading, which degrades surface reflectance retrieval quality.
+
+\paragraph{Cloud Probability (CLP):}
+\begin{equation}
+\label{eq:clp_scale}
+\mathrm{CLP}_{\text{scaled}} = \frac{\mathrm{CLP}_{\text{DN}}}{255}
+\end{equation}
+The CLP column is an 8-bit unsigned integer ranging from 0 to 255,
+where 255 represents 100\% cloud probability. Dividing by 255 maps it to
+the $[0,1]$ range, consistent with the standard normalisation of 8-bit
+pixel values. Thresholding at 0.4 after scaling identifies observations
+with a cloud probability exceeding 40\%.
+
+
+% ============================================================
+\section{QUADKEY Spatial Tiling and Zoom Level~22}
+\label{sec:quadkey}
+% ============================================================
+
+The dataset represents each ground observation as a QUADKEY tile — a
+string identifier from Microsoft's Bing Maps tiling system that encodes
+both the spatial location and the hierarchical zoom level of a square
+tile on the Earth's surface~\cite{bing2010}. QUADKEYs are used at
+\textbf{zoom level~22} in this study.
+
+The ground resolution of a QUADKEY tile at a given zoom level $z$ and
+geographic latitude $\phi$ is given by:
+\begin{equation}
+\label{eq:ground_res}
+r = \frac{156{,}543.034 \times \cos\phi}{2^{z}} \quad \text{(metres per pixel)}
+\end{equation}
+At zoom level~22 and Rwanda's mean latitude of approximately $\phi \approx
+-1.9°$:
+\begin{equation}
+r \approx \frac{156{,}543.034 \times \cos(-1.9°)}{2^{22}}
+  \approx \frac{156{,}543.034 \times 0.9994}{4{,}194{,}304}
+  \approx 9.55 \approx 10 \text{ m/pixel}
+\end{equation}
+
+This result is not a coincidence: zoom level~22 was chosen because it
+produces a ground resolution of approximately 10~metres, matching the
+native spatial resolution of the core Sentinel-2 optical bands
+(B02--B08). This alignment allows the QUADKEY to act as the spatial unit
+of analysis for linking ground-truth polygons with Sentinel-2 observations.
+Each QUADKEY therefore represents a consistent spatial tile across the
+Season~B time series, making it suitable for temporal feature extraction
+and crop classification.
+
+
+% ============================================================
+\section{Data Preprocessing and Quality Control}
+\label{sec:preprocessing}
+% ============================================================
+
+Data preprocessing follows a strict, ordered pipeline in which each step
+addresses a specific data quality issue and produces a cleaner dataset
+for the subsequent stage. Steps are applied in the following sequence:
+schema validation, temporal filtering, full-row deduplication, zero-band
+detection, label standardisation and monocrop filtering, polygon geometry
+quality control, band scaling, temporal deduplication, spectral quality
+nullification (SCL/AOT/CLP), boundary pixel removal, and finally gap
+analysis with linear interpolation.
+
+
+% ------------------------------------------------------------
+\subsection{Schema Validation and Date Parsing}
+\label{subsec:schema_val}
+% ------------------------------------------------------------
+
+The first step verifies that all columns required by the downstream
+pipeline are present in the loaded dataset. A \texttt{ValueError} is
+raised immediately if any expected column is missing, ensuring that
+downstream failures cannot occur silently due to schema changes in the
+data source. The \texttt{START\_DATE} and \texttt{END\_DATE} columns are
+parsed from string format to \texttt{datetime64[ns]}, enabling all
+subsequent temporal operations (filtering, sorting, differencing,
+and ISO week extraction).
+
+
+% ------------------------------------------------------------
+\subsection{Temporal Filtering to Season~B}
+\label{subsec:temporal_filter}
+% ------------------------------------------------------------
+
+Observations are filtered to retain only those with a \texttt{START\_DATE}
+falling within calendar months 2 through 8 (February to August,
+inclusive). As established in Section~\ref{subsec:harvard}, this window
+corresponds directly to Rwanda's Season~B crop growing cycle and matches
+the ground-truth collection context documented in the dataset metadata.
+
+Retaining out-of-season observations (September to January) would
+introduce spectral signals from a different agricultural state than what
+the field labels represent. A maize field labelled in June during active
+vegetative growth would appear spectrally very different in December after
+harvest; combining such observations would corrupt the feature distribution
+and degrade classification performance. Two derived columns are added at
+this stage: \texttt{year} (ISO calendar year) and \texttt{week} (ISO
+calendar week number), both cast to \texttt{int16} for memory efficiency.
+After filtering, the dataset contains 1,490,460 observations covering
+27,093 unique QUADKEYs, spanning 2025-02-05 to 2025-08-27.
+
+
+% ------------------------------------------------------------
+\subsection{Full-Row Duplicate Removal}
+\label{subsec:dedup_full}
+% ------------------------------------------------------------
+
+A duplicate check reveals that 502,800 rows (33.7\% of the temporally
+filtered dataset) are exact duplicates across all columns. Full-row
+duplicates arise from the data pipeline used to join ground-truth polygons
+with Sentinel-2 tiles: when a field polygon overlaps multiple tile export
+boundaries, the same pixel observation can be delivered twice with
+identical attribute values. Retaining duplicates would artificially
+inflate the apparent dataset size, introduce correlated samples into
+cross-validation folds, and bias model training toward over-represented
+spatial regions.
+
+All duplicate rows are removed, reducing the dataset from 1,490,460 to
+987,660 rows. The duplicate check is performed at the full-row level
+rather than on a key subset, to avoid removing legitimate observations
+that share only a partial key but differ in spectral content.
+
+
+% ------------------------------------------------------------
+\subsection{Zero-Band Row Detection and Removal}
+\label{subsec:zero_band}
+% ------------------------------------------------------------
+
+Rows in which all spectral band columns (B01--B12) simultaneously equal
+zero are physically invalid. A Sentinel-2 observation with zero
+reflectance across all bands indicates a sensor failure, a no-data fill
+value incorrectly recorded as zero, or a corrupted pixel. Such rows
+cannot be imputed because their spectral content is entirely absent, and
+their inclusion in the training set would introduce a degenerate signal
+that could mislead the classifier. All such rows are identified and
+removed before any further processing.
+
+
+% ------------------------------------------------------------
+\subsection{Label Standardisation and Monocrop Filtering}
+\label{subsec:label_std}
+% ------------------------------------------------------------
+
+The \texttt{landcover} column is standardised by converting all values to
+uppercase, stripping leading and trailing whitespace, and collapsing
+internal consecutive whitespace to a single space. This step ensures that
+semantically identical labels such as \texttt{"maize"}, \texttt{"Maize"},
+and \texttt{"MAIZE"} are treated as a single class.
+
+Following standardisation, the dataset contains 12 distinct label
+categories, of which 8 describe intercropping or mixed-crop systems
+(e.g., \texttt{BEAN AND MAIZE}, \texttt{BEAN, MAIZE, AND PUMPKIN}). This
+study targets monocrop classification; mixed-crop pixels are excluded
+because their spectral signal is a superposition of multiple crop
+phenologies and cannot be reliably assigned to a single label. Mixed-crop
+labels are identified by a regular expression pattern that detects the
+keyword \texttt{AND} at a word boundary or a comma
+($\texttt{r"}\backslash\texttt{bAND}\backslash\texttt{b|},$"), and all
+matching rows are removed.
+
+After filtering, four monocrop classes are retained:
+\textbf{MAIZE}, \textbf{RICE}, \textbf{BEAN}, and \textbf{IRISH POTATO}.
+The dataset is reduced from 987,660 to 830,940 rows, and from 27,093 to
+23,339 unique QUADKEYs.
+
+
+% ------------------------------------------------------------
+\subsection{Polygon Geometry Quality Control}
+\label{subsec:compactness}
+% ------------------------------------------------------------
+
+A polygon compactness check is included as a diagnostic geometry-quality
+control step. This check was motivated by earlier work with the Oracle/Rwanda
+government ground-truth dataset, where several field polygons were found to
+be highly elongated or geometrically irregular. Such polygons can intersect
+many boundary pixels and may produce ambiguous QUADKEY labels after spatial
+joining with Sentinel-2. Although the final report focuses on the Harvard
+Dataverse dataset, the same compactness diagnostic was retained to verify
+that similar geometry-quality problems were not present in the Harvard
+polygons.
+
+Polygon compactness is quantified using the \textbf{Polsby--Popper}
+measure~\cite{polsbypopper1991}, a widely used geometric index that
+returns values close to zero for elongated or irregular shapes and
+approaches unity for a perfect circle. The raw compactness score is
+defined as:
+\begin{equation}
+\label{eq:compactness}
+C = \frac{A}{P^{2}}
+\end{equation}
+where $A$ is the polygon area (in projected units$^{2}$) and $P$ is its
+perimeter. The isoperimetric (normalised) Polsby--Popper score, which
+evaluates to 1 for a circle, is obtained by:
+\begin{equation}
+\label{eq:compactness_iso}
+C_{\mathrm{PP}} = 4\pi \cdot C = \frac{4\pi A}{P^{2}}
+\end{equation}
+Both $C$ and $C_{\mathrm{PP}}$ are computed for each unique WKT polygon.
+A polygon is flagged as suspicious if it is geometrically invalid
+(\texttt{is\_valid = False}) or if its raw compactness score falls below
+the threshold $C < 0.01$. A polygon compactness distribution histogram
+is produced as a diagnostic figure (Figure~\ref{fig:compactness}).
+
+In the Harvard dataset, this check is used primarily as a validation step.
+It documents polygon geometry quality and confirms whether low-compactness
+polygons need to be removed before modelling.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/polygon_compactness_distribution.png}
+    \caption{Distribution of polygon compactness scores ($C = A/P^{2}$)
+    across all 669 unique WKT field polygons. The dashed vertical line
+    marks the low-compactness threshold at $C = 0.01$.}
+    \label{fig:compactness}
+\end{figure}
+
+
+% ------------------------------------------------------------
+\subsection{Band Scaling}
+\label{subsec:scaling_step}
+% ------------------------------------------------------------
+
+Band scaling is applied after label filtering and geometry quality control,
+and \emph{before} temporal deduplication. This ordering is deliberate:
+deduplication selects the best observation per week using AOT and CLP as
+ranking criteria, and those criteria must be evaluated in their scaled
+(physically meaningful) form to ensure that the thresholds are correctly
+applied. Scaling equations and their physical justifications are given in
+Section~\ref{subsec:scaling}.
+
+
+% ------------------------------------------------------------
+\subsection{Temporal Deduplication: Best Observation Per Week}
+\label{subsec:temporal_dedup}
+% ------------------------------------------------------------
+
+After full-row deduplication (Section~\ref{subsec:dedup_full}), a further
+130,680 duplicate combinations of (\texttt{QUADKEY}, \texttt{START\_DATE},
+\texttt{Landcover}) remain. These arise from overlapping Sentinel-2
+satellite passes: the same tile can be observed by multiple orbits within
+a 7-day compositing window, producing multiple valid observations for the
+same location and date. Rather than arbitrarily discarding one, the
+pipeline retains the \emph{highest-quality} observation using a
+multi-criteria ranking.
+
+Each observation is ranked by the following criteria in priority order:
+\begin{enumerate}
+    \item \textbf{SCL class}: observations whose SCL value is in
+          \texttt{GOOD\_SCL} = \{4, 5\} are ranked first;
+    \item \textbf{AOT} (ascending): lower aerosol loading is preferred;
+    \item \textbf{CLP} (ascending): lower cloud probability is preferred.
+\end{enumerate}
+Within each (\texttt{QUADKEY}, \texttt{START\_DATE}, \texttt{Landcover})
+group, the dataset is sorted by these criteria and the first row is kept,
+leaving zero remaining duplicates on the key subset.
+
+The rationale for preferring a quality-ranking strategy over simple
+averaging is that Sentinel-2 surface reflectance values from cloudy or
+aerosol-contaminated observations are systematically biased. Averaging
+a cloud-free and a cloud-contaminated observation would produce a
+spectrally compromised composite that is worse than the cloud-free
+observation alone.
+
+
+% ------------------------------------------------------------
+\subsection{Spectral Quality Nullification (SCL, AOT, and CLP Masking)}
+\label{subsec:nullification}
+% ------------------------------------------------------------
+
+Following temporal deduplication, a quality-control step sets the spectral
+values of observations that fail any of the following three criteria to
+\texttt{NaN}:
+
+\begin{enumerate}
+    \item $\mathrm{AOT}_{\text{scaled}} > 0.3$ (aerosol loading too high);
+    \item $\mathrm{CLP}_{\text{scaled}} > 0.4$ (cloud probability too high);
+    \item $\mathrm{SCL} \notin \{4, 5\}$ (non-vegetation, non-bare-soil pixel).
+\end{enumerate}
+
+Observations failing one or more criteria have all spectral band values
+set to \texttt{NaN}. The row is retained, but its spectral content is
+treated as missing. This preserves the regular 7-day temporal grid of
+each QUADKEY's time series, which is required for consistent gap analysis
+and linear interpolation. Three diagnostic plots are generated at this
+stage (Figure~\ref{fig:qc_plots}): the AOT distribution with threshold
+marker, the CLP distribution with threshold marker, and the SCL class
+frequency bar chart with the accepted classes highlighted.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/quality_inputs_aot_clp_scl.png}
+    \caption{Quality-control diagnostic plots for AOT, CLP, and SCL
+    distributions after temporal deduplication but before spectral
+    nullification. Vertical dashed lines indicate the applied thresholds.}
+    \label{fig:qc_plots}
+\end{figure}
+
+Additionally, a temporal quality plot shows the percentage of
+nullified observations per acquisition date across the Season~B window,
+revealing strong temporal variability in cloud cover
+(Figure~\ref{fig:lq_by_date}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/low_quality_observations_by_date.png}
+    \caption{Temporal pattern of nullified observations across Season~B~2025.
+    Each data point represents one 7-day acquisition date. Strong temporal
+    variability in cloud cover motivates the interpolation step.}
+    \label{fig:lq_by_date}
+\end{figure}
+
+
+% ------------------------------------------------------------
+\subsection{Boundary Pixel Removal}
+\label{subsec:boundary}
+% ------------------------------------------------------------
+
+A boundary pixel is a QUADKEY for which the same (\texttt{QUADKEY},
+\texttt{START\_DATE}) combination is associated with two or more distinct
+\texttt{Landcover} labels on the same date. This arises when a QUADKEY
+tile straddles the boundary between two different field polygons — for
+example, a tile that partially overlaps a maize field and a bean field
+simultaneously. The resulting spectral observation is a mixture of two
+crop phenologies and cannot be reliably assigned to either class, so all
+such QUADKEYs are removed.
+
+Crucially, boundary pixel removal is performed \emph{before} gap analysis.
+Performing it afterwards would risk including conflicting observations in
+the gap statistics, inflating the reported maximum gap length with noise
+from boundary tiles rather than genuine cloud-induced missingness.
+The conflict check identified one such QUADKEY, classified as a
+cross-polygon / cross-farm boundary, consistently appearing across all
+30 acquisition dates. This QUADKEY was removed.
+
+
+% ------------------------------------------------------------
+\subsection{Temporal Gap Analysis and Linear Interpolation}
+\label{subsec:interpolation}
+% ------------------------------------------------------------
+
+\subsubsection{Time Cadence Verification}
+\label{subsubsec:cadence}
+
+Before gap analysis, the acquisition cadence is verified by computing
+pairwise date differences within each QUADKEY's time series. All
+consecutive \texttt{START\_DATE} intervals are exactly 7~days, confirming
+a perfectly regular weekly grid. A gap of $k$ consecutive nullified
+observations therefore corresponds to $k \times 7$~days without valid
+spectral data.
+
+\subsubsection{Gap Statistics and QUADKEY Removal}
+\label{subsubsec:gap}
+
+For each QUADKEY, the lengths of consecutive null-spectral segments are
+computed. The maximum gap length per QUADKEY is used as the criterion for
+removal. The maximum allowable gap is set to 9 consecutive missing
+observations (equivalent to 63 consecutive days). QUADKEYs whose maximum
+gap exceeds this threshold are discarded, because interpolating across a
+gap longer than nine observations would generate speculative values that
+bear little resemblance to actual spectral dynamics and could introduce
+spurious phenological features. Figure~\ref{fig:gap_dist} shows the
+distribution of maximum gap lengths across all QUADKEYs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/max_missing_gap_length_distribution.png}
+    \caption{Histogram of the maximum consecutive missing observation
+    gap per QUADKEY after quality-control nullification. The dashed vertical
+    line marks the removal threshold at 9 consecutive missing observations.}
+    \label{fig:gap_dist}
+\end{figure}
+
+\subsubsection{Linear Interpolation}
+\label{subsubsec:linear_interp}
+
+For QUADKEYs whose maximum gap does not exceed the threshold, missing
+spectral values are filled using \textbf{linear interpolation} applied
+independently to each spectral band column within each QUADKEY's time
+series.
+
+Linear interpolation is chosen over more complex alternatives for the
+following reasons. First, within the Season~B growing window, crop spectral
+reflectance follows a broadly monotonic or unimodal trajectory (rising
+during vegetative growth, peaking at canopy closure, declining at
+senescence). Over short gaps of one to three observations (7--21~days),
+linear interpolation provides a geometrically reasonable approximation to
+this trajectory without requiring assumptions about the specific functional
+form of the phenological curve. Second, more complex methods such as
+Savitzky--Golay smoothing or double-logistic fitting require a sufficient
+number of valid observations to fit reliably, which is not guaranteed in
+heavily cloud-affected time series. Third, linear interpolation is
+computationally inexpensive and deterministic, supporting reproducibility.
+
+After interpolation, a temporal coverage check confirms that all remaining
+QUADKEYs have exactly 30 valid observations spanning the Season~B window.
+The final preprocessed dataset contains 655,950 observations across
+21,865 QUADKEYs.
+
+
+% ============================================================
+\section{Feature Engineering}
+\label{sec:features}
+% ============================================================
+
+Feature engineering transforms the preprocessed time series into a
+tabular feature matrix suitable for classical machine learning models,
+while also preserving the temporal structure for deep learning. For each
+QUADKEY, features are extracted from its 30-observation time series across
+15 vegetation indices, yielding a final feature matrix of shape
+$21{,}865 \times 96$.
+
+
+% ------------------------------------------------------------
+\subsection{Vegetation Index Computation}
+\label{subsec:vi}
+% ------------------------------------------------------------
+
+Vegetation indices are computed from the scaled Sentinel-2 reflectance
+bands after interpolation. They serve as physically meaningful
+transformations of the raw spectral bands, accentuating specific aspects
+of vegetation state (greenness, moisture, canopy structure, stress)
+that are more directly related to crop type and phenological stage than
+individual band values. Table~\ref{tab:vi} lists all 15 indices computed,
+with their formulas, the Sentinel-2 bands involved, and the agronomic
+signal each index captures.
+
+\small
+\setlength{\LTpre}{6pt}
+\setlength{\LTpost}{6pt}
+\begin{longtable}{@{}p{2.2cm}p{4.4cm}p{2.0cm}p{4.4cm}@{}}
+\caption{Vegetation indices computed from scaled Sentinel-2 bands.
+Band wavelength centres in nm are given for reference.
+A small constant $\varepsilon = 10^{-10}$ is added to all denominators
+to prevent division-by-zero errors.}
+\label{tab:vi}\\
+\toprule
+\textbf{Index} & \textbf{Formula} & \textbf{Bands} & \textbf{Agronomic Signal} \\
+\midrule
+\endfirsthead
+\caption[]{Vegetation indices computed from scaled Sentinel-2 bands (continued).}\\
+\toprule
+\textbf{Index} & \textbf{Formula} & \textbf{Bands} & \textbf{Agronomic Signal} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\textit{Continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\multicolumn{4}{@{}l}{\textit{Greenness / Canopy Vigour}} \\
+\addlinespace
+NDVI &
+$\dfrac{B08 - B04}{B08 + B04}$ &
+B08 (842\,nm), B04 (665\,nm) &
+General vegetation health and canopy density; the most widely used
+crop monitoring index. \\
+\addlinespace
+SAVI &
+$\dfrac{1.5(B08 - B04)}{B08 + B04 + 0.5}$ &
+B08, B04 &
+Soil-adjusted variant of NDVI; reduces bare-soil background effects
+in sparsely vegetated fields~\cite{huete1988}. \\
+\addlinespace
+OSAVI &
+$\dfrac{B08 - B04}{B08 + B04 + 0.16}$ &
+B08, B04 &
+Optimised soil-adjusted index; fixed soil adjustment factor
+minimises sensitivity to soil brightness variation~\cite{rondeaux1996}. \\
+\addlinespace
+EVI &
+$\dfrac{2.5(B08 - B04)}{B08 + 6 \cdot B04 - 7.5 \cdot B02 + 1}$, clipped to $[-1,1]$ &
+B08, B04, B02 (490\,nm) &
+Enhanced Vegetation Index; reduces atmospheric and canopy
+background effects; sensitive to dense canopies where NDVI
+saturates~\cite{huete2002}. \\
+\addlinespace
+GNDVI &
+$\dfrac{B08 - B03}{B08 + B03}$ &
+B08, B03 (560\,nm) &
+Green NDVI; sensitive to chlorophyll concentration; complements
+NDVI for crop nitrogen status monitoring~\cite{gitelson1996}. \\
+\addlinespace
+\multicolumn{4}{@{}l}{\textit{Water / Moisture Indices}} \\
+\addlinespace
+NDWI &
+$\dfrac{B03 - B08}{B03 + B08}$ &
+B03, B08 &
+Normalised Difference Water Index; sensitive to open water and
+canopy water content; useful for detecting waterlogged rice paddies. \\
+\addlinespace
+LSWI &
+$\dfrac{B08 - B11}{B08 + B11}$ &
+B08, B11 (1610\,nm) &
+Land Surface Water Index; sensitive to leaf and soil moisture;
+useful for irrigated crop detection~\cite{xiao2005}. \\
+\addlinespace
+NDMI &
+$= \mathrm{LSWI}$ (same formula in Sentinel-2 context) &
+B08, B11 &
+Normalised Difference Moisture Index; equivalent to LSWI for
+Sentinel-2 band configuration~\cite{wilson2002}. \\
+\addlinespace
+\multicolumn{4}{@{}l}{\textit{Burn / Dryness / Vegetation Stress Indices}} \\
+\addlinespace
+NBR &
+$\dfrac{B08 - B12}{B08 + B12}$ &
+B08, B12 (2190\,nm) &
+Normalised Burn Ratio; sensitive to charred vegetation and dry
+biomass; provides contrast for post-harvest field detection. \\
+\addlinespace
+NBR2 &
+$\dfrac{B11 - B12}{B11 + B12}$ &
+B11, B12 &
+Second Normalised Burn Ratio; differentiates healthy vegetation from
+stressed or dried biomass using two SWIR bands. \\
+\addlinespace
+\multicolumn{4}{@{}l}{\textit{Red-Edge / Chlorophyll-Sensitive Indices}} \\
+\addlinespace
+NDRE &
+$\dfrac{B08 - B05}{B08 + B05}$ &
+B08, B05 (705\,nm) &
+Red-edge NDVI; highly sensitive to chlorophyll content and early
+crop stress; advantageous for crop type discrimination~\cite{gitelson1994}. \\
+\addlinespace
+NDRE\_B06 &
+$\dfrac{B08 - B06}{B08 + B06}$ &
+B08, B06 (740\,nm) &
+Red-edge variant using the second red-edge band; captures a
+different stage of the red-edge reflectance slope. \\
+\addlinespace
+NDRE\_B07 &
+$\dfrac{B08 - B07}{B08 + B07}$ &
+B08, B07 (783\,nm) &
+Red-edge variant using the third red-edge band; sensitive to
+dense canopy chlorophyll. \\
+\addlinespace
+NDRE\_B8A\_B05 &
+$\dfrac{B8A - B05}{B8A + B05}$ &
+B8A (865\,nm), B05 &
+Narrow-NIR red-edge index; increases sensitivity to canopy
+structure at the red-edge inflection. \\
+\addlinespace
+CI\_RE &
+$\dfrac{B08}{B05} - 1$ &
+B08, B05 &
+Chlorophyll Index Red-Edge; directly proportional to leaf
+chlorophyll content; more linear than NDRE at high biomass
+levels~\cite{gitelson2003}. \\
+\end{longtable}
+\normalsize
+
+
+% ------------------------------------------------------------
+\subsection{Statistical Feature Extraction}
+\label{subsec:stat_features}
+% ------------------------------------------------------------
+
+For each of the 15 vegetation indices, four summary statistics are
+computed per QUADKEY over its 30-observation time series:
+
+\begin{equation}
+\label{eq:stat_features}
+\{\bar{x},\ \sigma,\ x_{\min},\ x_{\max}\}
+\end{equation}
+
+where $\bar{x}$ is the temporal mean, $\sigma$ the standard deviation,
+$x_{\min}$ the minimum, and $x_{\max}$ the maximum value across the
+Season~B window. These statistics capture the central tendency, temporal
+variability, and seasonal range of each spectral signal, providing a
+compact but informative representation of each QUADKEY's growing season
+trajectory. This yields $15 \times 4 = 60$ statistical features per
+QUADKEY.
+
+
+% ------------------------------------------------------------
+\subsection{Phenological Feature Extraction}
+\label{subsec:pheno_features}
+% ------------------------------------------------------------
+
+Six phenological metrics are extracted from the time series of six
+selected vegetation indices (NDVI, EVI, NDMI, LSWI, NDRE, NBR) that
+exhibit a clear seasonal signal over the crop growth cycle. The
+phenological extraction follows the \textbf{TIMESAT left-minimum
+approach}~\cite{jonsson2004}: the start of season (SoS) is defined not
+as the global minimum of the series, but as the local minimum on the
+\emph{left side} of the seasonal peak. This approach avoids the problem
+where noisy or cloud-affected observations at the beginning of the time
+series cause SoS to default to time step~0.
+
+The six phenological features extracted per index per QUADKEY are:
+
+\begin{enumerate}
+    \item \textbf{SoS (Start of Season):} the index of the left-side
+          local minimum, representing the onset of green-up. Formally,
+          the left series is defined as $x_{1:\hat{t}+1}$ where
+          $\hat{t} = \arg\max(x)$, and SoS is the index of the minimum
+          within this left segment.
+    \item \textbf{EoS (End of Season):} the index at which the right side
+          of the seasonal curve falls below the SoS threshold value,
+          representing senescence.
+    \item \textbf{Peak Value:} $x_{\hat{t}}$, the maximum value of the
+          index over the Season~B window.
+    \item \textbf{Amplitude:} $x_{\hat{t}} - x_{\mathrm{SoS}}$, the
+          seasonal swing of the vegetation index from green-up onset to
+          peak.
+    \item \textbf{Rate of Increase:} $\dfrac{\mathrm{Amplitude}}{\hat{t} -
+          \mathrm{SoS}}$, the average rate of greenness increase per time
+          step during the growing phase.
+    \item \textbf{Integral:} $\displaystyle\int_{\mathrm{SoS}}^{\mathrm{EoS}}
+          x(t)\,dt$, approximated by the trapezoidal rule over the growing
+          season segment, representing accumulated photosynthetic activity.
+\end{enumerate}
+
+The SoS threshold is computed as:
+\begin{equation}
+\label{eq:sos_threshold}
+\theta_{\mathrm{SoS}} = x_{\mathrm{left\,min}} + 0.20 \times (x_{\hat{t}} - x_{\mathrm{left\,min}})
+\end{equation}
+encoding that SoS is the point at which the index rises to 20\% of the
+seasonal amplitude above the left-side minimum.
+
+With 6 phenological features computed for each of 6 indices, this yields
+$6 \times 6 = 36$ phenological features per QUADKEY.
+
+
+% ------------------------------------------------------------
+\subsection{Final Feature Matrix}
+\label{subsec:feature_matrix}
+% ------------------------------------------------------------
+
+Combining the 60 statistical features (Section~\ref{subsec:stat_features})
+and the 36 phenological features (Section~\ref{subsec:pheno_features})
+produces a final feature matrix of shape $21{,}865 \times 96$
+(21,865~QUADKEYs, 96 features per QUADKEY). No additional dimensionality
+reduction is applied at this stage; feature selection is performed as part
+of the model development pipeline (Section~\ref{subsec:feat_sel}) using
+the training subset only, to prevent information from the test set
+influencing feature selection.
+
+The feature matrix is saved to
+\texttt{artifacts/monocrop\_model\_features.parquet} and the list of
+feature column names to \texttt{artifacts/feature\_columns.json} for
+reproducible downstream use.
+
+
+% ============================================================
+\section{Exploratory Data Analysis}
+\label{sec:eda}
+% ============================================================
+
+Exploratory Data Analysis (EDA) is conducted at two stages of the
+pipeline: (1)~after preprocessing and class selection, to characterise
+the cleaned dataset, and (2)~after feature engineering, to assess the
+discriminative power and inter-feature relationships of the extracted
+features. EDA findings directly inform subsequent modelling choices,
+including the class imbalance strategy and the feature selection approach.
+
+
+% ------------------------------------------------------------
+\subsection{Univariate Analysis}
+\label{subsec:univariate}
+% ------------------------------------------------------------
+
+\paragraph{Class distribution.}
+Figure~\ref{fig:class_dist} shows the distribution of unique QUADKEYs per
+crop class after label standardisation and monocrop filtering, before the
+later temporal gap filtering step. MAIZE dominates the dataset with
+12,460 QUADKEYs (53.4\%), followed by RICE with 8,679 (37.2\%),
+IRISH POTATO with 1,161 (5.0\%), and BEAN with 1,040 (4.5\%). This
+severe class imbalance motivates the use of a resampling strategy during
+model training (Section~\ref{subsec:class_imbalance}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/crop_distribution_monocrop.png}
+    \caption{Distribution of unique QUADKEYs per monocrop class after
+    filtering. MAIZE and RICE dominate the dataset, while IRISH POTATO
+    and BEAN form much smaller minority classes.}
+    \label{fig:class_dist}
+\end{figure}
+
+\paragraph{Per-class vegetation index box plots.}
+Box plots of key vegetation indices stratified by crop class
+(Figure~\ref{fig:boxplots}) provide a first visual assessment of
+inter-class discriminability. Indices that show minimal overlap between
+class distributions are candidates for strong predictors in the
+classification model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/vi_boxplots_grouped.png}
+    \caption{Box plots of key vegetation index values by crop class.
+    Overlapping interquartile ranges indicate class separation difficulty;
+    non-overlapping ranges suggest strong discriminative features.}
+    \label{fig:boxplots}
+\end{figure}
+
+
+% ------------------------------------------------------------
+\subsection{Bivariate Analysis}
+\label{subsec:bivariate}
+% ------------------------------------------------------------
+
+\paragraph{Feature correlation heatmap.}
+A Pearson correlation heatmap is computed for the selected engineered
+features (Figure~\ref{fig:corr_heatmap}). Several feature pairs exhibit
+near-perfect correlation: NDMI and LSWI share a correlation of 1.000,
+as they use an identical formula under the Sentinel-2 band configuration;
+NDMI and NBR have a correlation of 0.991; and NDRE and CI\_RE have a
+correlation of 0.949. These high correlations motivate the three-stage
+feature selection procedure (Section~\ref{subsec:feat_sel}), which removes
+redundant features before model training.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/engineered_feature_correlation_heatmap.png}
+    \caption{Pearson correlation matrix of selected engineered features.
+    Deep green cells indicate strong positive correlation ($r \approx 1$);
+    deep red cells indicate strong negative correlation ($r \approx -1$);
+    pale yellow cells indicate near-zero correlation ($r \approx 0$).
+    Several index pairs are near-perfectly correlated, confirming the
+    need for feature selection prior to model training.}
+    \label{fig:corr_heatmap}
+\end{figure}
+
+\paragraph{Temporal crop signatures.}
+Mean vegetation index time series are plotted per crop class across the
+30-observation Season~B window to visualise class-specific phenological
+patterns (Figure~\ref{fig:temporal_sigs}). Differences in peak timing,
+amplitude, and green-up rate between classes provide qualitative
+justification for including phenological features in the model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/temporal_crop_signatures_grouped.png}
+    \caption{Mean temporal profiles of key vegetation indices per crop
+    class across Season~B~2025. Class-specific differences in phenological
+    timing and magnitude underpin the feature engineering choices.}
+    \label{fig:temporal_sigs}
+\end{figure}
+
+
+% ------------------------------------------------------------
+\subsection{Multivariate Analysis}
+\label{subsec:multivariate}
+% ------------------------------------------------------------
+
+\paragraph{Within-class consistency.}
+A well-labelled crop class should be spectrally similar across all its
+pixels. If pixels labelled as \textit{Maize} look very different from one
+another in the satellite data, the classifier will struggle to learn a
+reliable decision boundary for that class. Two metrics are used to quantify
+this internal consistency for each class, computed across four vegetation
+indices (NDVI, EVI, NDMI, NDRE):
+
+\begin{itemize}
+    \item \textbf{Within-date standard deviation:} on each acquisition date,
+          the standard deviation of the index value is computed across all
+          QUADKEYs belonging to the same class. A high value means that on
+          any given day, pixels of the same crop type look spectrally very
+          different from each other — indicating a heterogeneous class.
+
+    \item \textbf{Quadkey mean standard deviation:} for each QUADKEY, the
+          seasonal mean of the index is computed across all 30 dates. The
+          standard deviation of these seasonal means across all QUADKEYs
+          of the same class is then taken. A high value means that different
+          pixels of the same crop follow very different seasonal trajectories
+          — some growing fast, others slowly — making the class harder to
+          characterise with a single phenological profile.
+\end{itemize}
+
+Figure~\ref{fig:within_class} presents both metrics for all four classes.
+RICE emerges as the most internally consistent class across all indices,
+meaning its pixels tend to look similar to each other both at any given
+date and across the full season. BEAN and IRISH POTATO show the highest
+intra-class variability on both metrics, which partly explains the
+classification difficulty evidenced in the PCA separability check
+(Figure~\ref{fig:pca}) and motivates the use of expressive non-linear
+classifiers.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/within_class_consistency.png}
+    \caption{Within-class temporal consistency for NDVI, EVI, NDMI, and
+    NDRE. Solid bars show within-date standard deviation; hatched bars
+    show quadkey mean standard deviation. RICE is the most compact class;
+    BEAN and IRISH POTATO show the highest intra-class variability.}
+    \label{fig:within_class}
+\end{figure}
+
+\paragraph{PCA separability check.}
+A Principal Component Analysis (PCA) applied to the mean vegetation-index
+feature space provides a two-dimensional visualisation of class
+separability (Figure~\ref{fig:pca}). PC1 explains 71.4\% of total
+variance and PC2 a further 13.3\%. The PCA plot reveals that RICE and
+IRISH POTATO show partial separation along the PC2 axis: RICE clusters
+towards negative PC2 values while IRISH POTATO occupies a broader spread
+towards positive PC1. MAIZE and BEAN, however, overlap substantially with
+each other and with the other classes across both principal components,
+confirming that the two-dimensional vegetation-index feature space does
+not provide sufficient linear separability. This motivates the use of the
+full 96-feature engineered representation and non-linear ensemble
+classifiers rather than linear methods.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/pca_separability_check.png}
+    \caption{Two-dimensional PCA projection of per-QUADKEY mean
+    vegetation-index features, coloured and shaped by crop class
+    (MAIZE: blue circle; RICE: teal square; BEAN: orange triangle;
+    IRISH POTATO: red diamond). PC1 captures 71.4\% of total variance
+    and PC2 a further 13.3\%. RICE and IRISH POTATO show partial
+    separation along PC2, while MAIZE and BEAN overlap strongly across
+    both axes, confirming that linear separation is insufficient.}
+    \label{fig:pca}
+\end{figure}
+
+\paragraph{Spatial distribution.}
+A spatial scatter plot of QUADKEY centroids coloured by crop class
+(Figure~\ref{fig:spatial}) reveals that crop classes are geographically
+clustered rather than randomly mixed, consistent with the four-district
+collection design. This spatial clustering has implications for how the
+train/test split is constructed, as discussed in
+Section~\ref{subsec:train_test_split_strategy}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/spatial_distribution_monocrop_quadkeys.png}
+    \caption{Geographic distribution of QUADKEY centroids coloured by
+    crop class across the four surveyed districts of Rwanda. Crop classes
+    are geographically clustered, consistent with the district-level
+    collection design.}
+    \label{fig:spatial}
+\end{figure}
+
+
+% ============================================================
+\section{Model Development}
+\label{sec:model_dev}
+% ============================================================
+
+% ------------------------------------------------------------
+\subsection{Train--Test Split Strategy}
+\label{subsec:train_test_split_strategy}
+
+Two train--test split strategies were used in this study. The first defines
+the main modelling protocol, while the second acts as a spatial robustness
+check.
+
+\paragraph{Primary QUADKEY-level split.}
+The main experiment uses a stratified QUADKEY-level split. Individual
+QUADKEYs are randomly assigned to the training and test partitions using an
+80/20 split, with stratification by the \texttt{Landcover} label. This keeps
+the crop-class proportions approximately consistent in both partitions, which
+is important because the dataset is class-imbalanced.
+
+The training partition is used for feature selection, model comparison,
+imbalance-strategy selection, and hyperparameter tuning through internal
+cross-validation. The test partition is kept separate as the final holdout
+set. This prevents the holdout test data from influencing model-development
+decisions.
+
+\paragraph{Limitation of the QUADKEY-level split.}
+The QUADKEY-level split ensures that the exact same QUADKEY does not appear
+in both training and test data. However, it does not fully remove the risk of
+spatial leakage. Neighbouring QUADKEYs from the same field or polygon may
+still be assigned to different partitions.
+
+These neighbouring samples are not fully independent. They may share the same
+crop label, soil conditions, field management, planting date, irrigation
+regime, local weather exposure, Sentinel-2 acquisition conditions, and
+annotation source. Therefore, a model evaluated on neighbouring tiles from a
+field already represented in training may appear to generalise better than it
+would on entirely unseen fields.
+
+\paragraph{Field-level group-aware split.}
+To assess this risk, a second split was created as a spatial leakage
+robustness check. This split uses \texttt{StratifiedGroupKFold} with five
+folds. The grouping variable is the field or polygon identifier \texttt{id},
+which links each QUADKEY to its source ground-truth polygon.
+
+All QUADKEYs belonging to the same field or polygon group are kept in the
+same partition. Therefore, no field group appears in both the training and
+test sets. The first fold is used as the holdout test fold, giving an
+approximately 80/20 group-aware split.
+
+\paragraph{Use of the field identifier.}
+The field identifier is used only for grouping and leakage diagnosis. It is
+not used as a model input feature. Including \texttt{id} as a predictor would
+make the experiment unrealistic because it is not an Earth-observation crop
+signal and would not be available for unseen fields during operational
+inference.
+
+\paragraph{Stratification.}
+Stratification by \texttt{Landcover} is applied in both split protocols. In
+the QUADKEY-level split, stratification preserves class proportions across
+individual QUADKEY samples. In the group-aware split, stratification is
+applied while respecting field boundaries, so class balance is preserved as
+much as possible without allowing samples from the same field or polygon to
+appear in both partitions.
+
+
+% ------------------------------------------------------------
+\subsection{Feature Selection}
+\label{subsec:feat_sel}
+% ------------------------------------------------------------
+
+Feature selection is applied \emph{exclusively on the training set},
+before any resampling, to ensure that the selection process is not
+influenced by synthetic samples or by the test set. A three-stage
+selection pipeline is employed:
+
+\begin{enumerate}
+    \item \textbf{Stage 1 — ANOVA $F$-test:} An analysis of variance
+          $F$-test (\texttt{SelectKBest(f\_classif)}) ranks all 96 features
+          by their univariate association with the class label. Features
+          with statistically insignificant associations ($p > 0.05$) are
+          candidates for removal.
+
+    \item \textbf{Stage 2 — Random Forest Importance:} A Random
+          Forest~\cite{breiman2001randomforest} classifier is trained on
+          the training set and feature importances (mean decrease in
+          impurity) are computed and ranked. The
+          top-$k$ features by importance are retained for the next stage.
+
+    \item \textbf{Stage 3 — Recursive Feature Elimination (RFE):} RFE
+          with 5-fold cross-validation (\texttt{RFECV}) iteratively removes
+          the least important features, selecting the subset that maximises
+          cross-validated macro F1. The final selected feature set is saved
+          to \texttt{artifacts/selected\_features.json}.
+\end{enumerate}
+
+This cascaded approach progressively removes redundant and non-discriminative
+features, reducing model complexity and training time while retaining the
+features most relevant to crop classification.
+
+
+% ------------------------------------------------------------
+\subsection{Class Imbalance Handling}
+\label{subsec:class_imbalance}
+% ------------------------------------------------------------
+
+The monocrop training set is strongly imbalanced. In the QUADKEY-level
+training partition, the class distribution is dominated by MAIZE and RICE,
+while BEAN and IRISH POTATO are much less frequent:
+
+\[
+\text{MAIZE}=9{,}843,\quad
+\text{RICE}=6{,}194,\quad
+\text{BEAN}=814,\quad
+\text{IRISH POTATO}=641.
+\]
+
+Thus, MAIZE and RICE together account for approximately \(91.7\%\) of the
+training samples, while BEAN and IRISH POTATO together account for only
+approximately \(8.3\%\). This imbalance is important because a classifier
+trained directly on the original distribution may favour the majority
+classes and still obtain high overall accuracy, while performing poorly on
+minority crops. For this reason, class imbalance was addressed explicitly
+during model development using cost-sensitive learning and synthetic
+minority oversampling.
+
+\paragraph{Cost-sensitive learning through class weighting.}
+The first strategy was cost-sensitive learning using balanced class weights.
+This approach does not change the training data distribution. Instead, it
+modifies the learning objective so that mistakes on minority classes receive
+larger penalties. The balanced weight assigned to class \(c\) is
+
+\begin{equation}
+\label{eq:class_weight}
+w_c =
+\frac{N}{K n_c},
+\end{equation}
+
+where \(N\) is the total number of training samples, \(K\) is the number of
+classes, and \(n_c\) is the number of training samples in class \(c\). Since
+\(w_c\) is inversely proportional to \(n_c\), minority classes receive larger
+weights than majority classes.
+
+Using the training counts above, the approximate balanced class weights are:
+
+\[
+w_{\text{MAIZE}} \approx 0.44,\quad
+w_{\text{RICE}} \approx 0.71,\quad
+w_{\text{BEAN}} \approx 5.37,\quad
+w_{\text{IRISH POTATO}} \approx 6.82.
+\]
+
+These weights show why class weighting is useful: an error on IRISH POTATO,
+for example, is penalised much more strongly than an error on MAIZE. For
+models that support class weighting directly, such as Random Forest, Extra
+Trees, and Linear SVM, the balanced class weights were passed through the
+\texttt{class\_weight} parameter. For models without an equivalent native
+\texttt{class\_weight} interface in this workflow, such as Gradient Boosting
+and XGBoost, the same weighting principle was implemented through per-sample
+weights during fitting. In this case, each training observation receives the
+weight of its corresponding class:
+\begin{equation}
+\label{eq:sample_weight}
+s_i = w_{y_i},
+\end{equation}
+where \(s_i\) is the sample weight of observation \(i\), and \(w_{y_i}\) is
+the balanced class weight of its true class. This ensures that minority-class
+observations contribute more strongly to the fitted objective, even when the
+estimator does not use \texttt{class\_weight} directly.
+
+\paragraph{Synthetic minority oversampling.}
+The second strategy was synthetic oversampling, applied to the tabular
+feature matrix after feature engineering. Unlike class weighting,
+oversampling changes the training distribution by adding new minority-class
+examples. The main method considered was the Synthetic Minority
+Over-sampling Technique (SMOTE)~\cite{chawla2002smote}.
+
+For a minority-class sample \(x_i\) and one of its \(k\)-nearest minority
+neighbours \(x_j\), SMOTE generates a synthetic sample by interpolation:
+
+\begin{equation}
+\label{eq:smote_formula}
+x_{\mathrm{new}}
+=
+x_i + \lambda (x_j - x_i),
+\quad
+\lambda \sim U(0,1).
+\end{equation}
+
+Here, \(x_{\mathrm{new}}\) lies on the line segment between two real
+minority-class samples. In this project, SMOTE was applied with
+\(k=5\) nearest neighbours.
+
+Several SMOTE-based strategies were compared. The first was full automatic
+SMOTE, where minority classes are oversampled up to the majority-class count.
+Since MAIZE is the largest class with \(9{,}843\) training samples, full
+SMOTE would increase all minority classes to approximately this count. This
+can be aggressive for very small classes.
+
+To avoid excessive over-generation, targeted per-class SMOTE strategies were
+also evaluated for BEAN and IRISH POTATO only. These strategies used RICE as
+the reference class rather than MAIZE. RICE has \(6{,}194\) training samples,
+so it provides a more moderate reference level. Four per-class targets were
+tested:
+
+\[
+\begin{aligned}
+\text{light target}  &= 0.4 \times 6{,}194 \approx 2{,}478,\\
+\text{medium target} &= 0.6 \times 6{,}194 \approx 3{,}716,\\
+\text{strong target} &= 0.8 \times 6{,}194 \approx 4{,}955,\\
+\text{rice-level target} &= 1.0 \times 6{,}194 = 6{,}194.
+\end{aligned}
+\]
+
+The selected strategy was the \textbf{per-class SMOTE medium} setting. Under
+this setting, BEAN and IRISH POTATO are each oversampled to a final target
+count of approximately \(3{,}716\) samples. Since the original training
+counts are \(814\) for BEAN and \(641\) for IRISH POTATO, the approximate
+numbers of synthetic samples added are:
+
+\[
+\begin{aligned}
+\text{BEAN synthetic samples} &\approx 3{,}716 - 814 = 2{,}902,\\
+\text{IRISH POTATO synthetic samples} &\approx 3{,}716 - 641 = 3{,}075.
+\end{aligned}
+\]
+
+This setting increases minority-class representation substantially while
+avoiding the more extreme synthetic generation that would occur if both
+minority classes were forced to match the MAIZE count.
+
+\paragraph{Adaptive Synthetic Sampling.}
+Adaptive Synthetic Sampling (ADASYN) was also evaluated as an alternative to
+SMOTE~\cite{he2008adasyn}. ADASYN generates synthetic minority samples like
+SMOTE, but it allocates more synthetic samples to minority observations that
+are harder to classify.
+
+For each minority sample \(x_i\), the local difficulty is estimated from its
+nearest-neighbour region:
+
+\begin{equation}
+\label{eq:adasyn_difficulty}
+r_i =
+\frac{\Delta_i}{k},
+\end{equation}
+
+where \(\Delta_i\) is the number of majority-class samples among the
+\(k\)-nearest neighbours of \(x_i\). The difficulty values are normalised as
+
+\begin{equation}
+\label{eq:adasyn_normalised}
+\hat{r}_i =
+\frac{r_i}{\sum_i r_i}.
+\end{equation}
+
+The number of synthetic samples generated around minority sample \(x_i\) is
+then
+
+\begin{equation}
+\label{eq:adasyn_generation}
+g_i =
+\hat{r}_i G,
+\end{equation}
+
+where \(G\) is the total number of synthetic samples to be generated. ADASYN
+therefore focuses synthetic generation on minority regions that are closer
+to majority-class samples and are more difficult for the classifier to
+separate.
+
+\paragraph{Leakage-safe resampling inside cross-validation.}
+All resampling was applied strictly inside each cross-validation fold. This
+is necessary to prevent data leakage. During cross-validation, each fold is
+temporarily divided into a fold-training subset and a fold-validation subset.
+SMOTE or ADASYN must be fitted only on the fold-training subset. The
+fold-validation subset must remain unchanged.
+
+This matters because SMOTE and ADASYN generate synthetic samples using
+nearest neighbours. If oversampling were applied before the cross-validation
+split, a synthetic training sample could be partly derived from an original
+sample that later appears in the validation fold. In that case, information
+from the validation data would indirectly enter the training data, producing
+an overly optimistic validation score.
+
+The correct procedure is therefore:
+
+\begin{center}
+\begin{tikzpicture}[
+    flowbox/.style={
+        draw=accentgold!85!chaptercolor,
+        fill=accentgold!10,
+        rounded corners=2pt,
+        align=center,
+        font=\small\bfseries,
+        text=chaptercolor,
+        inner xsep=8pt,
+        inner ysep=6pt,
+        text width=0.72\textwidth
+    },
+    flowarrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+]
+    \node[flowbox] (split) at (0,0) {Split fold};
+    \node[flowbox] (resample) at (0,-1.25) {Resample fold-training subset only};
+    \node[flowbox] (fit) at (0,-2.50) {Fit model};
+    \node[flowbox] (evaluate) at (0,-3.75) {Evaluate on untouched fold-validation subset};
+
+    \draw[flowarrow] (split) -- (resample);
+    \draw[flowarrow] (resample) -- (fit);
+    \draw[flowarrow] (fit) -- (evaluate);
+\end{tikzpicture}
+\end{center}
+
+This ensures that validation data remain genuinely unseen during each
+cross-validation run.
+
+\paragraph{Final imbalance strategy for the classical tabular pipeline.}
+The imbalance strategies were compared using stratified cross-validation on
+the training data. Figure~\ref{fig:imbalance_comparison} summarises the
+cross-validated macro F1 and minority class F1 for all tested strategies.
+The \textbf{per-class SMOTE medium} strategy achieved the strongest balance
+between macro F1 and minority class F1, making it the selected strategy for
+the final classical tabular pipeline. It oversamples BEAN and IRISH POTATO
+to approximately \(60\%\) of the RICE training count, providing a moderate
+compromise between leaving the minority classes under-represented and
+generating an excessive number of synthetic samples.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/imbalance_strategy_comparison.png}
+    \caption{Cross-validated macro F1 (solid bars) and minority class F1
+    averaged over BEAN and IRISH POTATO (hatched bars) for all tested
+    imbalance strategies. Error bars show $\pm 1$ standard deviation across
+    five folds. The selected strategy, per-class SMOTE medium, is highlighted
+    in red.}
+    \label{fig:imbalance_comparison}
+\end{figure}
+
+\paragraph{Deep learning — class-weighted sequence training.}
+For the sequence-based deep learning models, SMOTE and ADASYN were not
+applied. These models use temporal sequence tensors rather than fixed-length
+tabular feature vectors:
+
+\[
+X_{\mathrm{seq}} \in \mathbb{R}^{N \times T \times F},
+\]
+
+where \(N\) is the number of QUADKEYs, \(T\) is the number of dates, and
+\(F\) is the number of features at each date. Applying synthetic
+interpolation directly to crop time series could create artificial temporal
+profiles that do not correspond to realistic crop phenology.
+
+Therefore, class imbalance in the LSTM, GRU, and 1D CNN experiments was
+handled using cost-sensitive learning through class weights. The class
+weights were computed from the sequence training labels using the balanced
+weighting rule in Eq.~\eqref{eq:class_weight} and passed to the Keras
+\texttt{fit()} method through the \texttt{class\_weight} argument. During
+training, this scales the loss contribution of each sample according to its
+class. The weighted sparse categorical cross-entropy can be written as
+
+\begin{equation}
+\label{eq:weighted_sequence_loss}
+\mathcal{L}_{\mathrm{weighted}}
+=
+-\frac{1}{N}
+\sum_{i=1}^{N}
+w_{y_i}
+\log p_{i,y_i},
+\end{equation}
+
+where \(y_i\) is the true class of sample \(i\), \(w_{y_i}\) is the weight of
+that class, and \(p_{i,y_i}\) is the predicted probability assigned to the
+true class. This approach keeps the original temporal sequences unchanged
+while increasing the penalty for errors on minority crop classes.
+
+
+% ------------------------------------------------------------
+\subsection{Classical Model Benchmarking}
+\label{subsec:benchmarking}
+% ------------------------------------------------------------
+
+Five classical machine learning classifiers are benchmarked using
+5-fold stratified cross-validation on the training set:
+
+\begin{enumerate}
+    \item \textbf{Random Forest}~\cite{breiman2001randomforest}
+          (\texttt{n\_estimators = 250},
+          \texttt{class\_weight = "balanced"});
+    \item \textbf{Extra Trees}~\cite{geurts2006extratrees}
+          (\texttt{n\_estimators = 250},
+          \texttt{class\_weight = "balanced"});
+    \item \textbf{XGBoost}~\cite{chen2016xgboost}
+          (gradient boosted trees);
+    \item \textbf{Gradient Boosting} (sklearn implementation, with
+          sample weighting);
+    \item \textbf{Linear SVM} (scaled features,
+          \texttt{class\_weight = "balanced"}).
+\end{enumerate}
+
+All models are evaluated using macro F1 as the primary metric, which
+equally weights all four classes regardless of their support size.
+Additional metrics recorded per fold include weighted F1, balanced
+accuracy, Cohen's kappa~\cite{cohen1960kappa}, and geometric mean
+(G-mean) of per-class recalls.
+
+
+% ------------------------------------------------------------
+\subsection{Hyperparameter Tuning}
+\label{subsec:tuning}
+% ------------------------------------------------------------
+
+The best-performing classical model identified through cross-validation
+benchmarking is further tuned using \textbf{Randomised Search
+Cross-Validation} (\texttt{RandomizedSearchCV}) with 5-fold stratified
+CV. Tuning is conducted on the training set only; the holdout test set
+remains unused until the final evaluation.
+
+% ------------------------------------------------------------
+\subsection{Deep Learning Sequence Models}
+\label{subsec:deep_learning}
+% ------------------------------------------------------------
+
+In addition to classical feature-based models, three deep learning
+sequence architectures are evaluated directly on the Sentinel-2 time
+series, without the feature engineering step. This allows a direct
+comparison between hand-crafted feature representations and learned
+temporal representations, and assesses whether the sequential structure
+of the 30-observation time series carries discriminative information
+beyond what the statistical and phenological features capture.
+
+Each QUADKEY's 30-observation sequence of spectral and index values is
+treated as the input tensor of shape $(30, F)$, where $F$ is the number
+of sequence feature channels. Three architectures are evaluated:
+
+\begin{enumerate}
+    \item \textbf{LSTM (Long Short-Term Memory)~\cite{hochreiter1997}:}
+          LSTM is a recurrent neural network architecture designed to model
+          temporal dependencies in sequential data. It uses input, forget,
+          and output gates to control how information is stored, updated, and
+          passed forward through time. This makes it suitable for crop
+          phenology, where early-season spectral behaviour may influence
+          later-season crop development.
+
+          In this project, the LSTM model receives the full Sentinel-2
+          sequence for each QUADKEY as input:
+
+          \[
+          X_{\mathrm{seq}} \in \mathbb{R}^{N \times 30 \times F},
+          \]
+
+          where \(N\) is the number of QUADKEYs, \(30\) is the number of
+          weekly observations in the Season~B window, and \(F\) is the number
+          of sequence features per date. The architecture is shown in
+          Figure~\ref{fig:lstm_arch}.
+
+          \begin{figure}[H]
+              \centering
+              \begin{tikzpicture}[
+                  node distance=0.75cm,
+                  block/.style={
+                      draw=accentgold!85!chaptercolor,
+                      fill=accentgold!10,
+                      rounded corners=3pt,
+                      align=center,
+                      font=\small\bfseries,
+                      text=chaptercolor,
+                      minimum width=4.8cm,
+                      minimum height=0.8cm
+                  },
+                  arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+              ]
+                  \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+                  \node[block, below=of input] (lstm) {LSTM layer\\64 units, dropout \(=0.2\)};
+                  \node[block, below=of lstm] (dense) {Dense layer\\64 units, ReLU};
+                  \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+                  \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+                  \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+                  \draw[arrow] (input) -- (lstm);
+                  \draw[arrow] (lstm) -- (dense);
+                  \draw[arrow] (dense) -- (dropout);
+                  \draw[arrow] (dropout) -- (output);
+                  \draw[arrow] (output) -- (pred);
+              \end{tikzpicture}
+              \caption{LSTM sequence model architecture used for crop type classification from Sentinel-2 time series.}
+              \label{fig:lstm_arch}
+          \end{figure}
+
+    \item \textbf{GRU (Gated Recurrent Unit)~\cite{cho2014}:}
+          GRU is another recurrent architecture for sequence modelling. It is
+          simpler than LSTM because it uses fewer gates, mainly update and
+          reset gates. This reduces the number of trainable parameters while
+          still allowing the model to retain useful temporal information. GRU
+          is therefore useful as a lighter recurrent alternative to LSTM for
+          the 30-date Sentinel-2 crop sequence.
+
+          The GRU architecture used in this project is shown in
+          Figure~\ref{fig:gru_arch}.
+
+          \begin{figure}[H]
+              \centering
+              \begin{tikzpicture}[
+                  node distance=0.75cm,
+                  block/.style={
+                      draw=accentgold!85!chaptercolor,
+                      fill=accentgold!10,
+                      rounded corners=3pt,
+                      align=center,
+                      font=\small\bfseries,
+                      text=chaptercolor,
+                      minimum width=4.8cm,
+                      minimum height=0.8cm
+                  },
+                  arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+              ]
+                  \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+                  \node[block, below=of input] (gru) {GRU layer\\64 units, dropout \(=0.2\)};
+                  \node[block, below=of gru] (dense) {Dense layer\\64 units, ReLU};
+                  \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+                  \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+                  \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+                  \draw[arrow] (input) -- (gru);
+                  \draw[arrow] (gru) -- (dense);
+                  \draw[arrow] (dense) -- (dropout);
+                  \draw[arrow] (dropout) -- (output);
+                  \draw[arrow] (output) -- (pred);
+              \end{tikzpicture}
+              \caption{GRU sequence model architecture used for crop type classification from Sentinel-2 time series.}
+              \label{fig:gru_arch}
+          \end{figure}
+
+    \item \textbf{1D CNN (One-Dimensional Convolutional Neural Network):}
+          The 1D CNN model treats the Sentinel-2 time series as a temporal
+          signal and applies convolutional filters along the time dimension.
+          These filters can learn local temporal patterns, such as rapid
+          green-up, short-term moisture change, or senescence-related
+          decreases in vegetation indices. Unlike recurrent models, the 1D
+          CNN does not process the sequence step by step; instead, it learns
+          temporal filters in parallel, making it computationally efficient.
+
+          The 1D CNN architecture used in this project is shown in
+          Figure~\ref{fig:cnn_arch}.
+
+          \begin{figure}[H]
+              \centering
+              \begin{tikzpicture}[
+                  node distance=0.65cm,
+                  block/.style={
+                      draw=accentgold!85!chaptercolor,
+                      fill=accentgold!10,
+                      rounded corners=3pt,
+                      align=center,
+                      font=\small\bfseries,
+                      text=chaptercolor,
+                      minimum width=5.4cm,
+                      minimum height=0.75cm
+                  },
+                  arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+              ]
+                  \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+                  \node[block, below=of input] (conv1) {Conv1D\\64 filters, kernel size \(=3\), ReLU};
+                  \node[block, below=of conv1] (bn) {Batch Normalisation};
+                  \node[block, below=of bn] (conv2) {Conv1D\\64 filters, kernel size \(=3\), ReLU};
+                  \node[block, below=of conv2] (gap) {Global Average Pooling 1D};
+                  \node[block, below=of gap] (dense) {Dense layer\\64 units, ReLU};
+                  \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+                  \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+                  \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+                  \draw[arrow] (input) -- (conv1);
+                  \draw[arrow] (conv1) -- (bn);
+                  \draw[arrow] (bn) -- (conv2);
+                  \draw[arrow] (conv2) -- (gap);
+                  \draw[arrow] (gap) -- (dense);
+                  \draw[arrow] (dense) -- (dropout);
+                  \draw[arrow] (dropout) -- (output);
+                  \draw[arrow] (output) -- (pred);
+              \end{tikzpicture}
+              \caption{1D CNN sequence model architecture used for crop type classification from Sentinel-2 time series.}
+              \label{fig:cnn_arch}
+          \end{figure}
+\end{enumerate}
+
+All three deep learning models use the same sequence dataset and the same
+train/test partition as the classical models. Only QUADKEYs with complete
+30-date sequences are included, ensuring a uniform input shape across all
+sequence models. Before training, the sequence features are standardised
+using the mean and standard deviation computed from the training partition
+only, preventing information from the test set from entering the
+preprocessing step.
+
+The models are trained for a maximum of 75 epochs with a batch size of 128.
+Early stopping monitors the validation loss with a patience of eight epochs
+and restores the best validation-loss weights. Class imbalance is handled
+through class weights computed from the training labels and passed to the
+Keras \texttt{fit()} method. SMOTE and ADASYN are not applied to the sequence
+models because these methods are designed for fixed-length tabular feature
+vectors, whereas the deep learning models operate on temporal sequence
+tensors. Applying synthetic interpolation directly to crop time series could
+produce artificial temporal profiles that do not correspond to realistic crop
+phenology.
+
+
+% ============================================================
+\section{Evaluation Framework}
+\label{sec:evaluation}
+% ============================================================
+
+All models are evaluated on holdout data that are never used during training,
+feature selection, imbalance-strategy selection, or hyperparameter tuning.
+Two evaluation protocols are reported, as described in
+Section~\ref{subsec:train_test_split_strategy}: the QUADKEY-level split as
+the primary evaluation protocol, and the field/group-level split as a
+secondary spatial leakage robustness check.
+
+The following metrics are computed per model and per protocol.
+
+\paragraph{Macro F1.}
+The primary metric. For each class $c$, the F1 score is:
+\begin{equation}
+F1_c = \frac{2 \cdot P_c \cdot R_c}{P_c + R_c}
+\end{equation}
+where $P_c$ is the precision and $R_c$ the recall for class $c$. The
+macro F1 is the unweighted mean across all classes:
+\begin{equation}
+F1_{\mathrm{macro}} = \frac{1}{K} \sum_{c=1}^{K} F1_c
+\end{equation}
+Macro F1 treats all classes equally regardless of their support, making
+it robust to class imbalance and ensuring that minority-class performance
+is fully reflected in the overall score.
+
+\paragraph{Weighted F1.}
+\begin{equation}
+F1_{\mathrm{weighted}} = \frac{\sum_{c=1}^{K} n_c \cdot F1_c}{\sum_{c=1}^{K} n_c}
+\end{equation}
+where $n_c$ is the number of true samples of class $c$. Weighted F1
+accounts for class support and is useful for assessing overall predictive
+power in deployment scenarios where class prevalence reflects real-world
+proportions.
+
+\paragraph{Balanced Accuracy.}
+\begin{equation}
+\mathrm{BA} = \frac{1}{K} \sum_{c=1}^{K} R_c
+\end{equation}
+The arithmetic mean of per-class recall. Equivalent to macro-averaged
+recall; insensitive to class imbalance.
+
+\paragraph{Cohen's Kappa.}
+\begin{equation}
+\kappa = \frac{p_o - p_e}{1 - p_e}
+\end{equation}
+where $p_o$ is the observed agreement (overall accuracy) and $p_e$ is the
+expected agreement by chance. Kappa measures classifier performance
+corrected for random agreement, providing a more conservative assessment
+than raw accuracy.
+
+\paragraph{Per-class Precision, Recall, and F1.}
+Reported individually for each of the four crop classes to reveal which
+classes are well-classified and which are systematically confused.
+
+\paragraph{Overall Accuracy.}
+Reported for completeness but not used as the primary metric: a classifier
+that predicts MAIZE for every sample would achieve over 50\% accuracy
+while completely failing to identify the three other crops.
+
+
+% ============================================================
+\section{Ethical Considerations}
+\label{sec:ethics}
+% ============================================================
+
+This project uses secondary data sources and does not involve direct
+interaction with human participants. Therefore, it does not require informed
+consent or ethical approval for human-subjects research within the scope of
+this study.
+
+\paragraph{Data privacy and access.}
+The datasets used in this project are derived from satellite remote sensing
+and field-collected crop polygon annotations. They do not contain personally
+identifiable information. The Harvard Dataverse dataset is publicly available
+under an open-access licence. The Oracle ground truth dataset is used under
+the terms of the internship agreement with Oracle and the Digital Government
+team.
+
+\paragraph{Societal relevance.}
+The application domain, multi-class crop type mapping for Rwanda, has
+positive societal relevance for food security monitoring, agricultural
+resource allocation, and early warning systems for crop failure. The
+methodology is designed to support, rather than replace, agronomic expertise.
+Model outputs are therefore intended as a decision-support tool for
+government and development organisations such as the Rwanda Space Agency and
+MinAgri.
+
+\paragraph{Research integrity.}
+Research integrity is supported through three main practices. First,
+reproducibility is improved through a fixed random seed
+(\texttt{RANDOM\_STATE = 42}), deterministic data ordering, and versioned
+artefact storage. Second, both field-level and QUADKEY-level evaluation
+protocols are reported transparently, with explicit acknowledgement of their
+respective limitations. Third, performance is assessed using metrics that are
+appropriate for class-imbalanced data, such as macro F1 and balanced
+accuracy, rather than relying only on overall accuracy, which could
+misrepresent minority-class performance.
+
+
+% ============================================================
+\section{Summary}
+\label{sec:method_summary}
+% ============================================================
+
+This chapter described the methodology developed for multi-class crop type
+mapping in Rwanda using Sentinel-2 time series and Season~B~2025 ground
+reference polygons.
+
+The methodology includes a structured preprocessing pipeline to address
+duplicate records, label inconsistencies, mixed-crop ambiguity, polygon
+quality, boundary-pixel conflicts, cloud and aerosol contamination, and
+temporal gaps. From the cleaned time series, vegetation indices are computed
+and summarised into statistical and phenological descriptors, producing a
+96-feature representation for each QUADKEY.
+
+The modelling design combines classical machine-learning
+classifiers, and sequence-based deep learning benchmarks. Class imbalance is
+handled through class weighting, targeted SMOTE-based oversampling, and
+ADASYN comparison for tabular models, while deep learning models use class
+weights on the original temporal sequences. The methodology also accounts for
+possible spatial leakage through a secondary field/group-level robustness
+check.
+
+Overall, the chapter establishes a reproducible workflow that connects
+geospatial label preparation, time-series cleaning, feature engineering,
+imbalance handling, leakage control, model development, and deployment
+preparation. Chapter~\ref{ch:results} presents the results obtained from
+applying this methodology.

@@ -1,0 +1,98 @@
+% ============================================================
+%  GENERAL INTRODUCTION
+% ============================================================
+
+\chapter*{General Introduction}
+\label{ch:intoGen}
+\addcontentsline{toc}{chapter}{General Introduction}
+\markboth{General Introduction}{General Introduction}
+
+Agriculture plays a central role in food security, rural livelihoods, and
+economic planning. In Rwanda, reliable information on crop type distribution
+is essential for agricultural monitoring, input planning, yield estimation,
+early warning systems, and national food-security decision-making. However,
+producing accurate crop maps remains challenging. Rwandan agricultural
+landscapes are characterised by smallholder fields, fragmented land parcels,
+mixed farming practices, regional differences in crop calendars, and frequent
+cloud cover during the growing season. These conditions make crop type mapping
+a complex remote-sensing problem, particularly when the goal is to distinguish
+between individual crop classes rather than simply identify cropland.
+
+Satellite remote sensing offers an effective way to observe agricultural areas
+regularly and at large scale. Sentinel-2 imagery is especially useful for this
+task because it provides multispectral observations at a spatial resolution
+suitable for agricultural monitoring. Its visible, red-edge, near-infrared, and
+shortwave-infrared bands capture information related to vegetation vigour,
+canopy structure, moisture, and crop development. When analysed as a time
+series, these observations describe how crops evolve across the growing season.
+This temporal behaviour is important because different crops may look similar
+on a single date but follow different seasonal trajectories.
+
+This project investigates the use of Sentinel-2 time series and supervised
+machine learning for multi-class crop type mapping in Rwanda. The study focuses
+on Season~B~2025 and uses the Harvard Dataverse Rwanda crop mapping ground
+reference dataset as the main source of labelled crop polygons. The
+classification task focuses on four monocrop classes: maize, rice, bean, and
+Irish potato. These crops are important in the Rwandan agricultural context and
+provide a meaningful case study for evaluating whether satellite time-series
+data can support operational crop monitoring.
+
+The main aim of this project is to design, implement, and evaluate a
+reproducible crop classification workflow that transforms field-labelled crop
+polygons and Sentinel-2 observations into reliable crop type predictions. The
+project is not limited to training a single model; it develops a complete
+analytical pipeline that addresses the practical challenges of working with
+real agricultural remote-sensing data. These include data quality issues, cloud
+contamination, temporal gaps, class imbalance, spatial dependence, and model
+comparison. This makes the work valuable both as a modelling study and as a
+structured case study in building an Earth Observation pipeline for crop
+monitoring.
+
+The project has four main objectives. First, the ground reference and satellite
+time-series data are prepared and quality-controlled to produce a consistent
+modelling dataset. Second, the seasonal behaviour of each crop is represented
+using spectral, vegetation-index, and phenological information. Third,
+classical machine-learning models and sequence-based deep learning models are
+compared under a consistent evaluation framework. Fourth, model performance is
+assessed while accounting for class imbalance and possible spatial leakage, so
+that the results provide a more realistic view of generalisation.
+
+A key contribution of this work is its emphasis on methodological
+reproducibility. Each stage of the workflow is documented, from data
+preparation and temporal reconstruction to feature extraction, model
+development, and evaluation. This transparency is important because, in remote
+sensing, model performance depends strongly on how satellite observations and
+ground labels are prepared before training begins. By making these decisions
+explicit, the project provides a workflow that can be reviewed, adapted, and
+extended in future crop monitoring studies.
+
+The project also has practical relevance. Crop maps can support government
+agencies, development organisations, and agricultural stakeholders by improving
+seasonal monitoring, guiding agricultural planning, and strengthening
+food-security assessments. At the same time, the project recognises that
+machine-learning outputs must be interpreted carefully. Minority-class
+performance, spatial generalisation, and single-season training data are
+therefore treated as important methodological concerns rather than ignored
+limitations.
+
+The outcome of this project is a complete and reproducible framework for
+multi-class crop type classification from Sentinel-2 time series in Rwanda. It
+demonstrates how field-collected crop labels can be linked with satellite
+observations, transformed into meaningful temporal representations, and
+evaluated through a comparative modelling framework. More broadly, the work
+contributes to the development of practical Earth Observation methods for
+agricultural monitoring in smallholder farming systems, where high-quality crop
+information is valuable but difficult to obtain at scale.
+
+The remainder of this report is organised as follows.
+Chapter~\ref{ch:introduction} introduces the host organisation, the project
+background, the problem statement, the aims and objectives, and the project
+management plan. Chapter~\ref{ch:literature} reviews the literature on remote
+sensing, Sentinel-2 imagery, crop phenology, crop classification methods, and
+class imbalance handling. Chapter~\ref{ch:method} presents the methodology,
+including dataset preparation, preprocessing, feature engineering, model
+development, and evaluation design. Chapter~\ref{ch:results} presents the
+experimental results. Chapter~\ref{ch:discussion} discusses the significance
+of the findings, the strengths and limitations of the work, and their
+implications. The final chapter concludes the report and outlines possible
+directions for future work.
