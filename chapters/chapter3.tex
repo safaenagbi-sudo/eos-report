@@ -99,17 +99,17 @@ methodology pipeline, from raw data acquisition to final model evaluation.
 % Row 4: Modelling
 % ============================================================
 \node[stage=BurntOrange, below=1.35cm of features] (split) {Train--Test Split\\QUADKEY + Field Check};
-\node[stage=BurntOrange, left=of split] (select) {Feature Selection\\ANOVA, RF Importance, RFECV};
-\node[stage=BurntOrange, left=of select] (imbalance) {Imbalance Handling\\Class Weights, SMOTE, ADASYN};
-\node[stage=BurntOrange, left=of imbalance] (models) {Model Development\\Classical ML + Deep Learning};
+\node[stage=BurntOrange, left=of split] (select) {Feature Selection\\ANOVA+Bonferroni, RF, RFECV};
+\node[stage=BurntOrange, left=of select] (imbalance) {Imbalance Strategy\\Top-3 Avg-Rank Selection};
+\node[stage=BurntOrange, left=of imbalance] (models) {Benchmark + Top-3 Tuning\\Classical ML + Deep Learning};
 
 % ============================================================
 % Row 5: Evaluation and deployment
 % ============================================================
-\node[stage=BrickRed, below=1.35cm of models] (eval) {Evaluation\\Macro F1, PR, ROC, Confusion};
+\node[stage=BrickRed, below=1.35cm of models] (eval) {Evaluation\\Macro F1, PR-AUC, ROC, Confusion};
 \node[stage=BrickRed, right=of eval] (robust) {Spatial Robustness\\Field/Group-Level Check};
-\node[stage=BrickRed, right=of robust] (deploy) {Deployment Preparation\\Saved Model Package};
-\node[stage=BrickRed, right=of deploy] (results) {Results and Diagnostics\\Final Outputs};
+\node[stage=BrickRed, right=of robust] (thresh) {Per-Class Threshold\\Calibration (Test)};
+\node[stage=BrickRed, right=of thresh] (infer) {District-Scale Inference\\Dynamic World Mask};
 
 % ============================================================
 % Arrows
@@ -135,8 +135,8 @@ methodology pipeline, from raw data acquisition to final model evaluation.
 
 \draw[arrow] (models.south) -- (eval.north);
 \draw[arrow] (eval) -- (robust);
-\draw[arrow] (robust) -- (deploy);
-\draw[arrow] (deploy) -- (results);
+\draw[arrow] (robust) -- (thresh);
+\draw[arrow] (thresh) -- (infer);
 
 % ============================================================
 % Group boxes on background layer
@@ -154,8 +154,8 @@ methodology pipeline, from raw data acquisition to final model evaluation.
     \node[groupbox=BurntOrange, fit=(models)(imbalance)(select)(split),
           label={[grouptext]above:Model Development}] {};
 
-    \node[groupbox=BrickRed, fit=(eval)(robust)(deploy)(results),
-          label={[grouptext]above:Evaluation and Deployment}] {};
+    \node[groupbox=BrickRed, fit=(eval)(robust)(thresh)(infer),
+          label={[grouptext]above:Evaluation and Inference}] {};
 \end{pgfonlayer}
 
 \end{tikzpicture}
@@ -1149,18 +1149,6 @@ correlation of 0.949. These high correlations motivate the three-stage
 feature selection procedure (Section~\ref{subsec:feat_sel}), which removes
 redundant features before model training.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/engineered_feature_correlation_heatmap.png}
-    \caption{Pearson correlation matrix of selected engineered features.
-    Deep green cells indicate strong positive correlation ($r \approx 1$);
-    deep red cells indicate strong negative correlation ($r \approx -1$);
-    pale yellow cells indicate near-zero correlation ($r \approx 0$).
-    Several index pairs are near-perfectly correlated, confirming the
-    need for feature selection prior to model training.}
-    \label{fig:corr_heatmap}
-\end{figure}
-
 \paragraph{Temporal crop signatures.}
 Mean vegetation index time series are plotted per crop class across the
 30-observation Season~B window to visualise class-specific phenological
@@ -1294,8 +1282,8 @@ is important because the dataset is class-imbalanced.
 
 The training partition is used for feature selection, model comparison,
 imbalance-strategy selection, and hyperparameter tuning through internal
-cross-validation. The test partition is kept separate as the final holdout
-set. This prevents the holdout test data from influencing model-development
+cross-validation. The test partition is kept separate as the final test
+set. This prevents the test data from influencing model-development
 decisions.
 
 \paragraph{Limitation of the QUADKEY-level split.}
@@ -1319,7 +1307,7 @@ which links each QUADKEY to its source ground-truth polygon.
 
 All QUADKEYs belonging to the same field or polygon group are kept in the
 same partition. Therefore, no field group appears in both the training and
-test sets. The first fold is used as the holdout test fold, giving an
+test sets. The first fold is used as the test fold, giving an
 approximately 80/20 group-aware split.
 
 \paragraph{Use of the field identifier.}
@@ -1349,11 +1337,16 @@ influenced by synthetic samples or by the test set. A three-stage
 selection pipeline is employed:
 
 \begin{enumerate}
-    \item \textbf{Stage 1 — ANOVA $F$-test:} An analysis of variance
-          $F$-test (\texttt{SelectKBest(f\_classif)}) ranks all 96 features
-          by their univariate association with the class label. Features
-          with statistically insignificant associations ($p > 0.05$) are
-          candidates for removal.
+    \item \textbf{Stage 1 — ANOVA $F$-test:} A one-way analysis of variance
+          $F$-test (\texttt{f\_oneway} from \texttt{scipy.stats}) is applied
+          to each of the 96 features independently on the training set,
+          testing for differences in feature means across the four crop
+          classes. To control the family-wise error rate across all 96
+          simultaneous tests, a \textbf{Bonferroni correction} is applied:
+          the significance threshold is set to
+          $\alpha_{\mathrm{Bonferroni}} = \alpha / n_{\mathrm{features}} = 0.05 / 96$.
+          Only features whose $p$-value falls below this corrected threshold
+          are retained for the next stage.
 
     \item \textbf{Stage 2 — Random Forest Importance:} A Random
           Forest~\cite{breiman2001randomforest} classifier is trained on
@@ -1586,27 +1579,25 @@ The correct procedure is therefore:
 This ensures that validation data remain genuinely unseen during each
 cross-validation run.
 
-\paragraph{Final imbalance strategy for the classical tabular pipeline.}
-The imbalance strategies were compared using stratified cross-validation on
-the training data. Figure~\ref{fig:imbalance_comparison} summarises the
-cross-validated macro F1 and minority class F1 for all tested strategies.
-The \textbf{per-class SMOTE medium} strategy achieved the strongest balance
-between macro F1 and minority class F1, making it the selected strategy for
-the final classical tabular pipeline. It oversamples BEAN and IRISH POTATO
-to approximately \(60\%\) of the RICE training count, providing a moderate
-compromise between leaving the minority classes under-represented and
-generating an excessive number of synthetic samples.
+\paragraph{Final imbalance strategy selection by average rank across top models.}
+The imbalance strategies were compared using stratified 5-fold
+cross-validation on the training data, evaluated \emph{independently for
+each of the three top-benchmark models} identified in
+Section~\ref{subsec:benchmarking}. For each model, each strategy is
+ranked by its mean cross-validated macro F1. The final strategy is
+selected by \textbf{average rank across the three models}: the strategy
+with the lowest average rank (i.e., most consistently strong across all
+three model families) is chosen. This cross-model selection criterion
+avoids choosing a strategy that is only well-suited to one model family.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/imbalance_strategy_comparison.png}
-    \caption{Cross-validated macro F1 (solid bars) and minority class F1
-    averaged over BEAN and IRISH POTATO (hatched bars) for all tested
-    imbalance strategies. Error bars show $\pm 1$ standard deviation across
-    five folds. The selected strategy, per-class SMOTE medium, is highlighted
-    in red.}
-    \label{fig:imbalance_comparison}
-\end{figure}
+Figure~\ref{fig:imbalance_comparison} summarises the cross-validated macro
+F1 for all tested strategies. The \textbf{per-class SMOTE medium} strategy
+achieved an average rank of 1.67 across the three top models, the lowest
+of all candidates, making it the selected strategy for the final pipeline.
+It oversamples BEAN and IRISH POTATO to approximately \(60\%\) of the
+RICE training count, providing a moderate compromise between leaving the
+minority classes under-represented and generating an excessive number of
+synthetic samples.
 
 \paragraph{Deep learning — class-weighted sequence training.}
 For the sequence-based deep learning models, SMOTE and ADASYN were not
@@ -1647,7 +1638,7 @@ while increasing the penalty for errors on minority crop classes.
 
 
 % ------------------------------------------------------------
-\subsection{Classical Model Benchmarking}
+\subsection{Machine Learning Models}
 \label{subsec:benchmarking}
 % ------------------------------------------------------------
 
@@ -1659,10 +1650,13 @@ Five classical machine learning classifiers are benchmarked using
           (\texttt{n\_estimators = 250},
           \texttt{class\_weight = "balanced"});
     \item \textbf{Extra Trees}~\cite{geurts2006extratrees}
-          (\texttt{n\_estimators = 250},
+          (\texttt{n\_estimators = 300},
           \texttt{class\_weight = "balanced"});
     \item \textbf{XGBoost}~\cite{chen2016xgboost}
-          (gradient boosted trees);
+          (\texttt{n\_estimators = 300},
+          \texttt{max\_depth = 5},
+          \texttt{learning\_rate = 0.05},
+          \texttt{objective = "multi:softprob"});
     \item \textbf{Gradient Boosting} (sklearn implementation, with
           sample weighting);
     \item \textbf{Linear SVM} (scaled features,
@@ -1673,7 +1667,20 @@ All models are evaluated using macro F1 as the primary metric, which
 equally weights all four classes regardless of their support size.
 Additional metrics recorded per fold include weighted F1, balanced
 accuracy, Cohen's kappa~\cite{cohen1960kappa}, and geometric mean
-(G-mean) of per-class recalls.
+(G-mean) of per-class recalls. The test set remains entirely
+untouched during this benchmarking phase.
+
+\paragraph{Top-3 model selection.}
+After benchmarking, the three models with the highest mean cross-validated
+macro F1 are selected for the subsequent imbalance strategy comparison and
+hyperparameter tuning stages. This approach avoids committing to a single
+model before the imbalance strategy has been determined, since the optimal
+strategy may vary across model families. The selected top-3 model names
+and their cross-validation scores are saved to
+\texttt{artifacts/top3\_benchmark\_models.json} and
+\texttt{artifacts/best\_benchmark\_model.json} respectively, forming the
+sole basis on which the downstream notebooks identify which models to tune.
+The test set is not consulted at this stage.
 
 
 % ------------------------------------------------------------
@@ -1681,11 +1688,89 @@ accuracy, Cohen's kappa~\cite{cohen1960kappa}, and geometric mean
 \label{subsec:tuning}
 % ------------------------------------------------------------
 
-The best-performing classical model identified through cross-validation
-benchmarking is further tuned using \textbf{Randomised Search
-Cross-Validation} (\texttt{RandomizedSearchCV}) with 5-fold stratified
-CV. Tuning is conducted on the training set only; the holdout test set
-remains unused until the final evaluation.
+Hyperparameter tuning is applied to \emph{all three top-benchmark models}
+identified in Section~\ref{subsec:benchmarking} (Extra Trees, XGBoost,
+and Random Forest), using the per-class SMOTE medium imbalance strategy
+selected in Section~\ref{subsec:class_imbalance}. Each model is tuned
+independently using \textbf{Randomised Search Cross-Validation}
+(\texttt{RandomizedSearchCV}) with 5-fold stratified cross-validation
+and 20 candidate parameter combinations, totalling 100 fits per model.
+Tuning is conducted on the training set only; the test set remains
+unused until the final evaluation.
+
+The model with the highest cross-validated macro F1 after tuning is
+designated the \textbf{best tuned model} and used for all subsequent
+final evaluation, per-class threshold calibration, and district-scale
+inference. The tuning results and best parameter sets for all three models
+are saved to \texttt{artifacts/hyperparameter\_tuning\_results.csv}.
+
+
+% ------------------------------------------------------------
+\subsection{Model Hyperparameters}
+\label{subsec:hyperparams}
+% ------------------------------------------------------------
+
+Table~\ref{tab:hyperparams} summarises the hyperparameters used for each
+classical model at two stages: the \textbf{benchmark configuration},
+which is the fixed starting point used during cross-validation
+benchmarking and imbalance strategy selection, and the
+\textbf{tuned configuration}, which is the best parameter set found by
+\texttt{RandomizedSearchCV} for the three top-benchmark models. Gradient
+Boosting and Linear SVM were not included in the tuning stage as they
+did not rank in the top~3 by cross-validated macro F1.
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter configurations for all five benchmarked classical
+models. For the top-3 models (Extra Trees, XGBoost, Random Forest), both
+the benchmark default and the best tuned parameters are shown. Gradient
+Boosting and Linear SVM are benchmark-only.}
+\label{tab:hyperparams}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Parameter} & \textbf{Benchmark default} & \textbf{Tuned value} \\
+\midrule
+
+\multirow{5}{*}{Extra Trees}
+  & \texttt{n\_estimators}    & 300           & 800 \\
+  & \texttt{max\_features}    & \textit{default} & \texttt{None} \\
+  & \texttt{min\_samples\_leaf} & \textit{default} & 1 \\
+  & \texttt{max\_depth}       & \textit{default} & 40 \\
+  & \texttt{class\_weight}    & \texttt{balanced} & \texttt{balanced} \\
+\addlinespace
+
+\multirow{7}{*}{XGBoost}
+  & \texttt{n\_estimators}    & 300           & 800 \\
+  & \texttt{max\_depth}       & 5             & 6 \\
+  & \texttt{learning\_rate}   & 0.05          & 0.05 \\
+  & \texttt{subsample}        & 0.9           & 0.7 \\
+  & \texttt{colsample\_bytree} & 0.9          & 0.7 \\
+  & \texttt{min\_child\_weight} & \textit{default} & 3 \\
+  & \texttt{gamma}            & \textit{default} & 0 \\
+\addlinespace
+
+\multirow{5}{*}{Random Forest}
+  & \texttt{n\_estimators}    & 250           & 800 \\
+  & \texttt{max\_features}    & \textit{default} & \texttt{log2} \\
+  & \texttt{min\_samples\_leaf} & \textit{default} & 1 \\
+  & \texttt{max\_depth}       & \textit{default} & 20 \\
+  & \texttt{class\_weight}    & \texttt{balanced} & \texttt{balanced} \\
+\addlinespace
+
+\multirow{2}{*}{Gradient Boosting}
+  & \texttt{loss}             & \texttt{log\_loss} & --- \\
+  & \texttt{sample\_weight}   & balanced (computed) & --- \\
+\addlinespace
+
+\multirow{2}{*}{Linear SVM}
+  & \texttt{C}                & \textit{default} (1.0) & --- \\
+  & \texttt{class\_weight}    & \texttt{balanced} & --- \\
+
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
 
 % ------------------------------------------------------------
 \subsection{Deep Learning Sequence Models}
@@ -1875,11 +1960,150 @@ phenology.
 
 
 % ============================================================
+\section{Per-Class Confidence Threshold Calibration}
+\label{sec:thresholds}
+% ============================================================
+
+Following final model selection, class-specific confidence thresholds are
+calibrated on the test set. Standard classifier output assigns
+each QUADKEY the class with the highest predicted probability, regardless
+of whether that probability is high or low. In a four-class imbalanced
+setting, this can lead to low-confidence predictions for minority classes
+being silently accepted. Per-class thresholding addresses this by requiring
+the predicted probability for a class to exceed a class-specific minimum
+before the label is confirmed.
+
+For each class $c$, the optimal threshold $\tau_c$ is found by a grid
+search over candidate values in the range $[0.05, 0.95]$ at a step of
+$0.0025$. For each candidate threshold, the per-class F1 score is
+computed on the test set by applying the rule:
+
+\begin{equation}
+\hat{y}_i =
+\begin{cases}
+c & \text{if } \hat{p}_{i,c} \geq \tau_c \\
+\texttt{uncertain} & \text{otherwise}
+\end{cases}
+\end{equation}
+
+where $\hat{p}_{i,c}$ is the predicted probability of the argmax class
+$c$ for observation $i$. The threshold that maximises the F1 score for
+class $c$ on the test set is selected as $\tau_c$.
+
+The resulting calibrated thresholds are saved to
+\texttt{artifacts/per\_class\_thresholds.json} and loaded by the
+district-scale inference pipeline. Using the test set for threshold
+calibration is acceptable here because the thresholds are not used to
+select the model (model selection was completed in
+Section~\ref{subsec:tuning} using training-set cross-validation only);
+the test set is used solely to calibrate the decision boundary of the
+already-chosen model.
+
+
+% ============================================================
+\section{District-Scale Inference}
+\label{sec:inference}
+% ============================================================
+
+Following model training and evaluation, the final model is applied to
+the full Nyagatare district to produce a district-scale crop type map.
+Nyagatare was selected as the inference target because it is both the
+most agriculturally active district in the Harvard Dataverse collection
+and the district with the largest spatial extent of cropland, providing
+the most geographically meaningful demonstration of the pipeline's
+operational capacity.
+
+The inference pipeline mirrors the training preprocessing chain exactly,
+applying all the same steps in the same order to ensure that the feature
+space presented to the model at inference time is consistent with the
+feature space used during training.
+
+
+% ------------------------------------------------------------
+\subsection{Inference Preprocessing}
+\label{subsec:inference_preprocessing}
+% ------------------------------------------------------------
+
+The Nyagatare Sentinel-2 time series is loaded and processed through the
+same sequential steps applied during training: temporal filtering to
+Season~B~2025 (February--August), full-row deduplication, zero-band row
+removal, band scaling, temporal deduplication to the best observation per
+ISO week, spectral quality nullification (SCL, AOT, CLP), gap analysis
+with linear interpolation, and vegetation index computation. The same
+quality-control thresholds (\texttt{GOOD\_SCL = (4, 5)},
+\texttt{AOT\_THRESH = 0.3}, \texttt{CLP\_THRESH = 0.4},
+\texttt{MAX\_GAP\_OBS = 9}) and the same gap removal criterion are applied.
+Statistical and phenological features are then extracted using the same
+functions as in training, producing a feature matrix of shape
+$N_{\mathrm{infer}} \times 99$ prior to feature subsetting.
+
+
+% ------------------------------------------------------------
+\subsection{Dynamic World Cropland Mask}
+\label{subsec:dw_mask}
+% ------------------------------------------------------------
+
+Before inference, a \textbf{Dynamic World cropland mask} is applied to
+restrict predictions to pixels that are consistently classified as crops
+during the Season~B~2025 period. The mask is derived from the Google
+Earth Engine Dynamic World V1 product
+(\texttt{GOOGLE/DYNAMICWORLD/V1})~\cite{brown2022dynamic}, which provides
+a 10-metre land cover classification at high temporal frequency.
+
+The mask is computed using the following steps:
+\begin{enumerate}
+    \item Filter the Dynamic World image collection to the Nyagatare
+          district boundary and the Season~B date range
+          (2025-02-01 to 2025-08-31).
+    \item Compute the mode land cover label across all available images
+          within this window (temporal majority vote).
+    \item Retain only pixels where the mode label equals class~4
+          (\textit{Crops}) in the Dynamic World classification.
+\end{enumerate}
+The resulting binary raster is exported from GEE as a GeoTIFF and loaded
+into the inference pipeline. QUADKEYs whose centroid falls outside the
+cropland mask are excluded from the feature matrix and receive no
+prediction. This step reduces the inference population from
+$\sim$19.9~million raw QUADKEYs to 4,088,243 cropland QUADKEYs.
+
+
+% ------------------------------------------------------------
+\subsection{Feature Alignment and Inference}
+\label{subsec:inference_predict}
+% ------------------------------------------------------------
+
+The feature matrix of the 4,088,243 cropland QUADKEYs is subset to the
+37 features identified during training-set feature selection
+(\texttt{artifacts/selected\_features.json}). Any remaining \texttt{NaN}
+values in the inference matrix are imputed with the column-wise median of
+the inference set. The feature matrix is then converted to \texttt{float64}
+and passed to the trained model's \texttt{predict} and
+\texttt{predict\_proba} methods.
+
+
+% ------------------------------------------------------------
+\subsection{Per-Class Thresholding at Inference}
+\label{subsec:inference_threshold}
+% ------------------------------------------------------------
+
+Predicted class labels are finalised by applying the per-class confidence
+thresholds calibrated in Section~\ref{sec:thresholds}. For each QUADKEY,
+the model's argmax class $c$ is accepted only if the corresponding class
+probability $\hat{p}_{i,c}$ meets or exceeds the threshold $\tau_c$
+loaded from \texttt{artifacts/per\_class\_thresholds.json}. If the
+probability falls below the threshold, the QUADKEY is assigned the label
+\texttt{uncertain}. This mechanism prevents low-confidence predictions
+from being silently included in the crop map, and allows the proportion
+of uncertain predictions to be reported transparently as a map quality
+indicator.
+
+
+% ============================================================
 \section{Evaluation Framework}
 \label{sec:evaluation}
 % ============================================================
 
-All models are evaluated on holdout data that are never used during training,
+All models are evaluated on test data that are never used during training,
 feature selection, imbalance-strategy selection, or hyperparameter tuning.
 Two evaluation protocols are reported, as described in
 Section~\ref{subsec:train_test_split_strategy}: the QUADKEY-level split as
@@ -1931,6 +2155,26 @@ than raw accuracy.
 Reported individually for each of the four crop classes to reveal which
 classes are well-classified and which are systematically confused.
 
+\paragraph{ROC-AUC.}
+The one-vs-rest macro-averaged Area Under the Receiver Operating
+Characteristic curve (\texttt{roc\_auc\_score}, \texttt{multi\_class="ovr"},
+\texttt{average="macro"}) is computed using the model's predicted class
+probabilities. ROC-AUC summarises the classifier's ranking ability across
+all classification thresholds. For class-imbalanced datasets, however,
+ROC-AUC can be misleadingly optimistic for minority classes, as it is
+dominated by the large number of true negatives. It is reported for
+completeness but is not the primary evaluation metric.
+
+\paragraph{Precision--Recall AUC (PR-AUC).}
+The macro-averaged Area Under the Precision--Recall curve is computed
+per class and averaged across classes. Unlike ROC-AUC, PR-AUC does not
+reward a high true-negative rate and is therefore more informative for
+minority-class performance in imbalanced settings. A high ROC-AUC
+combined with a substantially lower PR-AUC for the same class indicates
+that the model's apparent discriminative power on that class is partially
+an artefact of the class imbalance rather than genuine classification
+quality.
+
 \paragraph{Overall Accuracy.}
 Reported for completeness but not used as the primary metric: a classifier
 that predicts MAIZE for every sample would achieve over 50\% accuracy
@@ -1968,12 +2212,14 @@ MinAgri.
 Research integrity is supported through three main practices. First,
 reproducibility is improved through a fixed random seed
 (\texttt{RANDOM\_STATE = 42}), deterministic data ordering, and versioned
-artefact storage. Second, both field-level and QUADKEY-level evaluation
-protocols are reported transparently, with explicit acknowledgement of their
-respective limitations. Third, performance is assessed using metrics that are
-appropriate for class-imbalanced data, such as macro F1 and balanced
-accuracy, rather than relying only on overall accuracy, which could
-misrepresent minority-class performance.
+artefact storage. All experiments were run on Oracle Cloud Infrastructure
+(OCI) JupyterLab using scikit-learn 1.8.0. Second, both field-level and
+QUADKEY-level evaluation protocols are reported transparently, with
+explicit acknowledgement of their respective limitations. Third,
+performance is assessed using metrics that are appropriate for
+class-imbalanced data, such as macro F1, PR-AUC, and balanced accuracy,
+rather than relying only on overall accuracy, which could misrepresent
+minority-class performance.
 
 
 % ============================================================
@@ -1992,16 +2238,29 @@ temporal gaps. From the cleaned time series, vegetation indices are computed
 and summarised into statistical and phenological descriptors, producing a
 96-feature representation for each QUADKEY.
 
-The modelling design combines classical machine-learning
-classifiers, and sequence-based deep learning benchmarks. Class imbalance is
-handled through class weighting, targeted SMOTE-based oversampling, and
-ADASYN comparison for tabular models, while deep learning models use class
-weights on the original temporal sequences. The methodology also accounts for
-possible spatial leakage through a secondary field/group-level robustness
-check.
+The modelling design begins with a five-model cross-validation benchmark,
+from which the top-3 classifiers are forwarded to imbalance strategy
+selection. Imbalance strategies are compared across all three top models
+simultaneously, and the strategy with the best average rank is selected.
+All three top models are then tuned independently, and the one with the
+highest cross-validated macro F1 after tuning is designated the final
+model. Deep learning sequence models (LSTM, GRU, 1D~CNN) are evaluated
+as complementary baselines. Class imbalance is handled through class
+weighting and targeted per-class SMOTE-based oversampling for tabular
+models, and through class weights for sequence models.
+
+The methodology also accounts for possible spatial leakage through a
+secondary field/group-level robustness check. Following final model
+selection, per-class confidence thresholds are calibrated on the test
+set and used to assign an \texttt{uncertain} label to low-confidence
+predictions.
+
+Finally, the trained model and calibrated thresholds are applied to the
+Nyagatare district for a district-scale crop type inference, using a
+Dynamic World cropland mask to restrict predictions to cropland pixels.
 
 Overall, the chapter establishes a reproducible workflow that connects
 geospatial label preparation, time-series cleaning, feature engineering,
-imbalance handling, leakage control, model development, and deployment
-preparation. Chapter~\ref{ch:results} presents the results obtained from
-applying this methodology.
+imbalance handling, leakage control, multi-model development, threshold
+calibration, and district-scale inference. Chapter~\ref{ch:results}
+presents the results obtained from applying this methodology.

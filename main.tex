@@ -52,6 +52,7 @@
 \usepackage{pgfgantt}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{placeins}
 
 % ─────────────────────────────────────────────
 %  COLOURED BOXES
@@ -188,7 +189,9 @@
 \usepackage{microtype}
 \usepackage{setspace}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{longtable}
+\usepackage{tabularx}
 \usepackage{caption}
 \captionsetup{font=small, labelfont={bf,color=sectioncolor}}
 \usepackage{lipsum}
@@ -249,6 +252,17 @@
   \end{center}%
 }
 
+\newcommand{\reporttablestyle}{%
+  \footnotesize
+  \setlength{\tabcolsep}{6pt}%
+  \renewcommand{\arraystretch}{1.22}%
+  \arrayrulecolor{accentgold!45!chaptercolor}%
+  \rowcolors{2}{pageborder!22}{white}%
+}
+
+\newcommand{\reportth}[1]{\textcolor{white}{\textbf{#1}}}
+\newcommand{\reportobj}[1]{\textcolor{sectioncolor}{\textbf{#1:}}}
+
 \newcommand{\frontchapter}[1]{%
   \chapter*{#1}%
   \addcontentsline{toc}{chapter}{#1}%
@@ -280,21 +294,18 @@
 \input{frontmatter/titlepage}
 \input{frontmatter/dedication}
 \input{frontmatter/acknowledgments}
-\input{frontmatter/resume}
 \input{frontmatter/summary}
+\input{frontmatter/resume}
+\input{frontmatter/abbreviations}
 
-% Lists
+\cleardoublepage
+\tableofcontents
+
 \cleardoublepage\phantomsection
 \addcontentsline{toc}{chapter}{\listfigurename}\listoffigures
 
 \cleardoublepage\phantomsection
 \addcontentsline{toc}{chapter}{\listtablename}\listoftables
-
-\cleardoublepage\phantomsection
-\addcontentsline{toc}{chapter}{\lstlistlistingname}\lstlistoflistings
-
-\cleardoublepage
-\tableofcontents
 
 % ── Main Matter ──────────────────────────────
 \mainmatter
@@ -305,6 +316,12 @@
 \input{chapters/chapter4}
 \input{chapters/chapter5}
 \input{chapters/conclusion}
+
+% ── Bibliography ─────────────────────────────
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliography}
+\printbibliography
 
 % ── Appendices ───────────────────────────────
 \appendix
@@ -334,11 +351,5 @@
 \input{appendices/appendix_a}
 \input{appendices/appendix_b}
 \input{appendices/appendix_c}
-
-% ── Bibliography ─────────────────────────────
-\cleardoublepage
-\phantomsection
-\addcontentsline{toc}{chapter}{Bibliography}
-\printbibliography
 
 \end{document}

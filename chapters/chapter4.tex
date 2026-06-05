@@ -1,48 +1,904 @@
 % ============================================================
-%  CHAPTER 4 — Implementation and Results
+%  CHAPTER 4 — Results
+%  Harvard Dataset Crop Multi-Classification and Nyagatare Inference
+%  All numbers verified against notebook PDFs (NB03a, NB03b, NB03c,
+%  NB04, NB05).
 % ============================================================
-\chapter{Implementation and Results}
+
+\chapter{Results}
 \label{ch:results}
-\lipsum[50]
 
-\section{Section One}
-\lipsum[51]
+This chapter presents the results of applying the methodology described
+in Chapter~\ref{ch:method}. The sections follow the same order as the
+pipeline: data preparation, feature selection, model benchmarking,
+imbalance-strategy selection, hyperparameter tuning, final model
+evaluation, comparison with baselines and sequence models, spatial
+robustness, and district-scale inference. Each result is reported
+objectively; broader interpretation is reserved for
+Chapter~\ref{ch:discussion}.
 
-  \subsection{Subsection One}
-  \lipsum[52]
 
-  \subsection{Subsection Two}
-  \lipsum[53]
+% ============================================================
+\section{Preprocessing and Feature Engineering}
+\label{sec:preprocessing_feature_results}
+% ============================================================
 
-    \subsubsection{Subsubsection One}
-    \lipsum[54]
+\subsection*{Preprocessing attrition}
 
-    \subsubsection{Subsubsection Two}
-    \lipsum[55]
+The preprocessing pipeline progressively filtered the raw Sentinel-2
+and crop-label dataset down to a clean monocrop time series.
+Table~\ref{tab:pipeline_funnel} summarises the row and QUADKEY counts
+at each stage.
 
-      \paragraph{Paragraph a}
-      \lipsum[56]
+\begin{table}[H]
+\centering
+\caption{Dataset size at key preprocessing stages. Rows are
+pixel-date observations; QUADKEYs are unique spatial tiles.}
+\label{tab:pipeline_funnel}
+\reporttablestyle
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Stage} & \reportth{Rows} & \reportth{QUADKEYs} \\
+\midrule
+Raw joined dataset                     & 1{,}788{,}552 & ---       \\
+After February--August filter          & 1{,}490{,}460 & 27{,}093 \\
+After full-row deduplication           &   987{,}660   & 27{,}093 \\
+After monocrop label filtering         &   830{,}940   & 23{,}339 \\
+After boundary-pixel removal           &   830{,}820   & 23{,}337 \\
+Final interpolated time series         &   655{,}950   & 21{,}865 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-      \paragraph{Paragraph b}
-      \lipsum[57]
+The largest single reduction came from full-row deduplication
+(987,660 rows, down 34\% from the filtered dataset), caused by
+overlapping Sentinel-2 tile exports. Monocrop label filtering removed
+mixed-crop entries, and gap filtering with interpolation produced the
+final dataset of \textbf{21,865~QUADKEYs}, each with exactly 30
+acquisition dates spanning Season~B~2025.
 
-\section{Section Two}
-\lipsum[58]
+\subsection*{Class distribution after preprocessing}
 
-  \subsection{Subsection One}
-  \lipsum[59]
+Table~\ref{tab:class_dist_final} shows the final class distribution.
+MAIZE and RICE together account for 91.7\% of QUADKEYs, while BEAN
+(4.7\%) and IRISH POTATO (3.7\%) form substantially smaller minority
+classes.
 
-  \subsection{Subsection Two}
-  \lipsum[60]
+\begin{table}[H]
+\centering
+\caption{Final monocrop class distribution after preprocessing.}
+\label{tab:class_dist_final}
+\reporttablestyle
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Class} & \reportth{QUADKEYs} & \reportth{Share} \\
+\midrule
+MAIZE        & 12{,}304 & 56.3\% \\
+RICE         &  7{,}742 & 35.4\% \\
+BEAN         &  1{,}018 &  4.7\% \\
+IRISH POTATO &    801   &  3.7\% \\
+\midrule
+\textbf{Total} & \textbf{21{,}865} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-    \subsubsection{Subsubsection One}
-    \lipsum[61]
+This imbalance directly motivates the oversampling strategy evaluated
+in Section~\ref{sec:imbalance_results}.
 
-    \subsubsection{Subsubsection Two}
-    \lipsum[62]
+\subsection*{Feature engineering}
 
-      \paragraph{Paragraph a}
-      \lipsum[63]
+Fifteen vegetation indices were computed from the scaled Sentinel-2
+bands, and four statistical summaries (mean, std, min, max) plus six
+phenological descriptors (start of season, end of season, peak value,
+amplitude, rate of increase, integral) were extracted per index per
+QUADKEY, yielding a \textbf{96-feature} tabular matrix of shape
+$21{,}865 \times 96$.
 
-      \paragraph{Paragraph b}
-      \lipsum[64]
+The feature-correlation heatmap
+(Figure~\ref{fig:engineered_feature_correlation_heatmap}) confirms
+substantial redundancy between index pairs that share spectral bands:
+NDMI and LSWI are perfectly correlated (r~=~1.000), and NDMI and NBR
+share r~=~0.991. This redundancy motivates the three-stage feature
+selection in Section~\ref{sec:feature_selection_results}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/engineered_feature_correlation_heatmap.png}
+    \caption{Pearson correlation matrix of the 96 engineered features.
+    Several index pairs are near-perfectly correlated because they share
+    spectral bands, confirming the need for a feature-selection step
+    before model training.}
+    \label{fig:engineered_feature_correlation_heatmap}
+    \label{fig:corr_heatmap}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Feature Selection}
+\label{sec:feature_selection_results}
+% ============================================================
+
+Feature selection was applied exclusively to the training partition of
+the 80/20 stratified QUADKEY-level split. The split is summarised in
+Table~\ref{tab:train_test_split_distribution}.
+
+\begin{table}[H]
+\centering
+\caption{Stratified QUADKEY-level train--test split.}
+\label{tab:train_test_split_distribution}
+\reporttablestyle
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Class} & \reportth{Train} & \reportth{Test} & \reportth{Total} \\
+\midrule
+MAIZE        &  9{,}843 & 2{,}461 & 12{,}304 \\
+RICE         &  6{,}194 & 1{,}548 &  7{,}742 \\
+BEAN         &    814   &   204   &  1{,}018 \\
+IRISH POTATO &    641   &   160   &    801   \\
+\midrule
+\textbf{Total} & \textbf{17{,}492} & \textbf{4{,}373} & \textbf{21{,}865} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Stage 1 --- ANOVA $F$-test with Bonferroni correction.}
+All 96 features passed the Bonferroni-corrected threshold
+($\alpha / 96$), so no predictors were removed at this stage. Every
+engineered variable carried at least some class-discriminative signal,
+though the ANOVA filter does not address correlation.
+
+\paragraph{Stage 2 --- Random Forest importance ranking.}
+Feature importances placed moisture and dryness indices at the top:
+NBR\_min, NBR2\_min, LSWI\_mean, NBR\_mean, and NBR\_eos were the five
+highest-ranked features. Figure~\ref{fig:rf_feature_importance} shows
+the top 15.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/rf_feature_importance.png}
+    \caption{Top 15 features by Random Forest mean decrease in
+    impurity. Moisture and dryness indices dominate; red-edge and
+    phenological timing features follow.}
+    \label{fig:rf_feature_importance}
+\end{figure}
+
+\paragraph{Stage 3 --- Recursive feature elimination (RFECV).}
+RFECV with 5-fold cross-validation selected \textbf{37 features} as the
+optimal subset, the point at which cross-validated macro F1 peaked
+(Figure~\ref{fig:rfe_feature_selection_curve}). This 37-feature subset
+was used for all subsequent modelling, imbalance-strategy testing, tuning,
+and district-scale inference.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/rfe_feature_selection_curve.png}
+    \caption{RFECV curve: cross-validated macro F1 vs.\ number of
+    retained features. The optimal point at 37 features is marked.}
+    \label{fig:rfe_feature_selection_curve}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Machine Learning Models}
+\label{sec:classical_benchmark_results}
+% ============================================================
+
+Five classical classifiers were benchmarked using 5-fold stratified
+cross-validation on the training set (class-weight-only imbalance
+handling, no tuning). Macro F1 was the primary ranking metric because
+the dataset is class-imbalanced and all four crops carry equal
+operational importance.
+
+\subsection*{Cross-validation results}
+
+Table~\ref{tab:classical_cv_benchmark} presents the full CV summary.
+Extra Trees ranked first on mean CV macro F1 (0.9159), with XGBoost
+close behind (0.9149). Random Forest placed third (0.8945), well above
+Gradient Boosting (0.8497) and Linear SVM (0.8194).
+
+\begin{table}[H]
+\centering
+\caption{5-fold CV benchmark for all five classical models, ordered
+by mean CV macro F1. The top-3 models (shaded) were carried forward
+to imbalance strategy selection and hyperparameter tuning.}
+\label{tab:classical_cv_benchmark}
+\reporttablestyle
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Mean macro F1} & \reportth{Std} &
+\reportth{Mean weighted F1} & \reportth{Mean balanced acc.} &
+\reportth{Mean G-mean} \\
+\midrule
+\rowcolor{accentgold!12}
+Extra Trees       & 0.9159 & 0.0114 & 0.9731 & 0.8811 & 0.9323 \\
+\rowcolor{accentgold!12}
+XGBoost           & 0.9149 & 0.0126 & 0.9731 & 0.9368 & 0.9632 \\
+\rowcolor{accentgold!12}
+Random Forest     & 0.8945 & 0.0166 & 0.9670 & 0.8557 & 0.9175 \\
+Gradient Boosting & 0.8497 & 0.0123 & 0.9477 & 0.9195 & 0.9505 \\
+Linear SVM        & 0.8194 & 0.0088 & 0.9415 & 0.8507 & 0.9121 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:cv_macro_f1_variability} shows that Extra Trees
+achieved the highest median CV macro F1 and the lowest fold-to-fold
+variance of the five models.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cv_macro_f1_variability.png}
+    \caption{Box plots of 5-fold CV macro F1 for the five benchmarked
+    models. Extra Trees shows the highest median and lowest variance.}
+    \label{fig:cv_macro_f1_variability}
+\end{figure}
+
+\subsection*{Test confirmation}
+
+To verify that the CV ranking was not an artefact of the folding
+procedure, each model was also evaluated on the untouched test set using
+its benchmark defaults. Table~\ref{tab:classical_test_benchmark}
+shows the test results. The ranking was fully consistent with the CV
+summary: Extra Trees first, Random Forest second, XGBoost third,
+Gradient Boosting fourth, Linear SVM fifth.
+
+\begin{table}[H]
+\centering
+\caption{Test results for all five benchmark models
+(default hyperparameters, before tuning). Ordered by macro F1.}
+\label{tab:classical_test_benchmark}
+\reporttablestyle
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Accuracy} & \reportth{Balanced acc.} &
+\reportth{Macro F1} & \reportth{Weighted F1} \\
+\midrule
+Extra Trees       & 0.9778 & 0.9289 & 0.9277 & 0.9777 \\
+Random Forest     & 0.9751 & 0.9208 & 0.9170 & 0.9749 \\
+XGBoost           & 0.9723 & 0.9216 & 0.9119 & 0.9724 \\
+Gradient Boosting & 0.9598 & 0.9054 & 0.8769 & 0.9609 \\
+Linear SVM        & 0.9156 & 0.8851 & 0.8035 & 0.9263 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/classical_model_benchmark.png}
+    \caption{Cross-validation and test comparison for all five
+    classical models. The relative ranking was stable across both
+    protocols.}
+    \label{fig:classical_model_benchmark}
+\end{figure}
+
+The three top models --- Extra Trees, XGBoost, and Random Forest ---
+were carried forward to the imbalance strategy comparison and
+hyperparameter tuning stages.
+
+
+\FloatBarrier
+% ============================================================
+\section{Class-Imbalance Strategy Selection}
+\label{sec:imbalance_results}
+% ============================================================
+
+Seven imbalance strategies were compared using 5-fold CV on the
+training set, evaluated independently for each of the three top
+models. The winning strategy was chosen by \textbf{average rank across
+all three models}, so that the selected method would be consistently
+strong rather than optimal for only one model family.
+
+The strategies tested were: class weighting only, full SMOTE (auto),
+per-class SMOTE light (40\% of RICE count), per-class SMOTE medium
+(60\%), per-class SMOTE strong (80\%), per-class SMOTE at RICE level
+(100\%), and ADASYN.
+
+\begin{table}[H]
+\centering
+\caption{Average-rank comparison of imbalance strategies across the
+three top-benchmark models. Lower average rank is better.
+Per-class SMOTE medium was selected.}
+\label{tab:imbalance_strategy_summary}
+\reporttablestyle
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Imbalance strategy} & \reportth{Average rank} &
+\reportth{Mean CV macro F1} \\
+\midrule
+\rowcolor{accentgold!12}
+Per-class SMOTE medium     & \textbf{1.67} & \textbf{0.9209} \\
+Per-class SMOTE strong     & 2.67 & 0.9194 \\
+Per-class SMOTE light      & 3.33 & 0.9190 \\
+Per-class SMOTE rice level & 3.67 & 0.9161 \\
+Full SMOTE auto            & 5.00 & 0.9138 \\
+Class weight only          & 5.33 & 0.9084 \\
+ADASYN auto                & 6.33 & 0.9056 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Per-class SMOTE medium achieved the lowest average rank (1.67) and the
+highest mean CV macro F1 (0.9209). It oversampled BEAN and IRISH POTATO
+to approximately 60\% of the RICE training count inside each fold,
+providing a moderate increase in minority-class representation without
+forcing them to match the MAIZE majority.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/imbalance_strategy_comparison.png}
+    \caption{Cross-validated macro F1 for all seven imbalance strategies
+    across the three top benchmark model families. Per-class SMOTE
+    medium consistently ranked first.}
+    \label{fig:imbalance_strategy_comparison}
+    \label{fig:imbalance_comparison}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Hyperparameter Tuning and Final Model Selection}
+\label{sec:tuning_results}
+% ============================================================
+
+All three top models were tuned using \texttt{RandomizedSearchCV}
+(5-fold CV, 20 candidates, 100 fits per model) with per-class SMOTE
+medium applied inside each training fold. The scoring metric was macro
+F1. The test set was not used at this stage.
+
+\begin{table}[H]
+\centering
+\caption{Tuning results for the three top models. Extra Trees achieved
+the highest CV macro F1 and was designated the final model.}
+\label{tab:tuning_results}
+\reporttablestyle
+\begin{tabular}{@{}lcl@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Best CV macro F1} &
+\reportth{Best hyperparameters} \\
+\midrule
+\rowcolor{accentgold!12}
+Extra Trees   & \textbf{0.9314} &
+    800 estimators, max depth 40, max features \texttt{None} \\
+XGBoost       & 0.9310 &
+    800 estimators, max depth 6, lr 0.05 \\
+Random Forest & 0.9137 &
+    800 estimators, max depth 20, max features \texttt{log2} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Extra Trees edged XGBoost by 0.0004 CV macro F1 (0.9314 vs.\ 0.9310),
+with Random Forest clearly lower at 0.9137. The \textbf{tuned Extra
+Trees classifier} was therefore selected as the final model for test
+evaluation, threshold calibration, and district-scale inference.
+
+
+\FloatBarrier
+% ============================================================
+\section{Final Model Evaluation}
+\label{sec:final_test_results}
+% ============================================================
+
+The tuned Extra Trees model was evaluated once on the untouched test
+set. No decisions were made after seeing these results.
+
+\subsection*{Overall performance}
+
+\begin{table}[H]
+\centering
+\caption{Final test results for the tuned Extra Trees model.}
+\label{tab:final_test_results}
+\reporttablestyle
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Accuracy} & \reportth{Balanced acc.} &
+\reportth{Macro F1} & \reportth{Weighted F1} \\
+\midrule
+Extra Trees Tuned & 0.9787 & 0.9287 & 0.9305 & 0.9786 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Per-class breakdown}
+
+Table~\ref{tab:per_class_final_metrics} shows precision, recall,
+and F1 for each crop class. The pattern is clear: RICE and MAIZE are
+well-classified (F1~=~0.9948 and 0.9844), while BEAN and IRISH POTATO
+are harder (F1~=~0.8586 and 0.8843).
+\begin{table}[H]
+\centering
+\caption{Per-class test performance for the tuned Extra Trees model.}
+\label{tab:per_class_final_metrics}
+\reporttablestyle
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Class} & \reportth{Precision} & \reportth{Recall} &
+\reportth{F1} & \reportth{Support} \\
+\midrule
+BEAN         & 0.9213 & 0.8039 & 0.8586 & 204       \\
+IRISH POTATO & 0.8418 & 0.9313 & 0.8843 & 160       \\
+MAIZE        & 0.9803 & 0.9886 & 0.9844 & 2{,}461   \\
+RICE         & 0.9987 & 0.9910 & 0.9948 & 1{,}548   \\
+\midrule
+Macro avg    & 0.9355 & 0.9287 & 0.9305 & 4{,}373   \\
+Weighted avg & 0.9790 & 0.9787 & 0.9786 & 4{,}373   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.72\textwidth]{figures/confusion_matrix_normalised.png}
+    \caption{Normalised confusion matrix for the tuned Extra Trees model.
+    Diagonal values are recall per class. The main off-diagonal entries
+    involve BEAN and IRISH POTATO.}
+    \label{fig:confusion_matrix_normalised}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/per_class_precision_recall_f1.png}
+    \caption{Per-class precision, recall, and F1 for the tuned Extra
+    Trees model. BEAN has the lowest recall; RICE is the strongest
+    class on all three metrics.}
+    \label{fig:per_class_precision_recall_f1}
+\end{figure}
+
+\subsection*{Probability diagnostics}
+
+ROC-AUC and PR-AUC were computed to assess the model's confidence
+quality beyond hard predictions.
+
+The macro AUC-ROC was \textbf{0.9980}
+(Figure~\ref{fig:best_model_auc_roc}), with individual class values:
+BEAN 0.9958, IRISH POTATO 0.9973, MAIZE 0.9989, RICE 0.9999.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/best_model_auc_roc.png}
+    \caption{One-vs-rest ROC curves. Macro AUC-ROC~=~0.9980.}
+    \label{fig:best_model_auc_roc}
+\end{figure}
+
+The macro average precision (PR-AUC) was \textbf{0.9785}
+(Figure~\ref{fig:best_model_precision_recall}), with individual values:
+BEAN 0.9447, IRISH POTATO 0.9703, MAIZE 0.9991, RICE 0.9999.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/best_model_precision_recall.png}
+    \caption{One-vs-rest precision--recall curves. Macro PR-AUC~=~0.9785.}
+    \label{fig:best_model_precision_recall}
+\end{figure}
+
+The gap between BEAN's ROC-AUC (0.9958) and PR-AUC (0.9447) is the
+largest among the four classes and is expected for a minority class in
+an imbalanced dataset: ROC-AUC is inflated by the large number of true
+negatives, whereas PR-AUC focuses only on the minority class predictions.
+PR-AUC is the more honest indicator of BEAN classification quality.
+
+\subsection*{Per-class confidence thresholds}
+
+Following evaluation, class-specific confidence thresholds were 
+calibrated on the test set. For each class~$c$, the 
+precision--recall curve was computed across all unique predicted 
+probability values, and the threshold $\tau_c$ that maximised the 
+per-class F1 score was selected using \texttt{np.argmax}. Table~\ref{tab:per_class_thresholds} reports the resulting
+thresholds used at inference time.
+
+\begin{table}[H]
+\centering
+\caption{Per-class confidence thresholds calibrated on the test set.
+Predictions below the threshold for the predicted class are labelled
+\texttt{uncertain} at inference time.}
+\label{tab:per_class_thresholds}
+\reporttablestyle
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Class} & \reportth{Threshold $\tau_c$} &
+\reportth{F1 at threshold} \\
+\midrule
+BEAN         & 0.3725  & 0.8917 \\
+IRISH POTATO & 0.5563  & 0.9393 \\
+MAIZE        & 0.4638  & 0.9846 \\
+RICE         & 0.2588  & 0.9955 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+RICE and MAIZE require lower thresholds because the model already
+assigns high-confidence probabilities to these classes. IRISH POTATO
+requires the highest threshold (0.5563), reflecting that the model
+needs to be more certain before committing to this minority class.
+
+\subsection*{Error analysis}
+
+The model made 93 errors on the 4,373-sample test set (error rate:
+2.1\%). Table~\ref{tab:error_analysis} lists all ten confusion pairs.
+
+\begin{table}[H]
+\centering
+\caption{All misclassification pairs for the tuned Extra Trees model.
+Total errors: 93 out of 4,373 test samples (2.1\%).}
+\label{tab:error_analysis}
+\reporttablestyle
+\begin{tabular}{@{}llrc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{True class} & \reportth{Predicted as} &
+\reportth{Count} & \reportth{\% of all errors} \\
+\midrule
+BEAN         & MAIZE        & 27 & 29.0\% \\
+MAIZE        & IRISH POTATO & 14 & 15.1\% \\
+MAIZE        & BEAN         & 13 & 14.0\% \\
+BEAN         & IRISH POTATO & 12 & 12.9\% \\
+IRISH POTATO & MAIZE        & 11 & 11.8\% \\
+RICE         & MAIZE        & 11 & 11.8\% \\
+RICE         & IRISH POTATO &  2 &  2.2\% \\
+MAIZE        & RICE         &  1 &  1.1\% \\
+RICE         & BEAN         &  1 &  1.1\% \\
+BEAN         & RICE         &  1 &  1.1\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+BEAN~$\rightarrow$~MAIZE was the most frequent error (27 cases, 29\% of
+all errors). RICE was the least confused class, with only 14 total errors.
+
+
+\FloatBarrier
+% ============================================================
+\section{Baseline and Sequence Model Comparison}
+\label{sec:baseline_sequence_results}
+% ============================================================
+
+\subsection*{Baseline models}
+
+Four baseline models were evaluated on the same test set
+(Table~\ref{tab:baseline_test_results}).
+
+\begin{table}[H]
+\centering
+\caption{Baseline model test performance on the 4,373-sample test set.}
+\label{tab:baseline_test_results}
+\reporttablestyle
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Accuracy} & \reportth{Balanced acc.} &
+\reportth{Macro F1} & \reportth{Weighted F1} \\
+\midrule
+Majority class baseline    & 0.5628 & 0.2500 & 0.1801 & 0.4053 \\
+Stratified random baseline & 0.4411 & 0.2453 & 0.2453 & 0.4394 \\
+Logistic Regression        & 0.8978 & 0.9023 & 0.7977 & 0.9144 \\
+Decision Tree              & 0.9469 & 0.8360 & 0.8432 & 0.9464 \\
+\midrule
+\textit{Tuned Extra Trees (reference)} & \textit{0.9787} &
+\textit{0.9287} & \textit{0.9305} & \textit{0.9786} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The majority-class baseline predicts MAIZE for every sample, scoring
+zero on all other classes and producing a macro F1 of only 0.1801. The
+tuned Extra Trees macro F1 of 0.9305 represents a gain of +0.133 over
+Logistic Regression and +0.087 over Decision Tree, confirming that the
+full ensemble and tuning pipeline adds substantial value.
+
+\subsection*{Sequence models}
+
+Three deep learning models were evaluated on the raw 30-timestep
+Sentinel-2 sequence tensor (shape: $21{,}865 \times 30 \times 29$),
+without any hand-crafted feature engineering.
+
+\begin{table}[H]
+\centering
+\caption{Sequence model test performance. The tuned Extra Trees result
+is shown for comparison.}
+\label{tab:sequence_results}
+\reporttablestyle
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Accuracy} & \reportth{Balanced acc.} &
+\reportth{Macro F1} & \reportth{Weighted F1} \\
+\midrule
+\rowcolor{accentgold!12}
+\textbf{1D CNN} & \textbf{0.9787} & \textbf{0.9575} &
+    \textbf{0.9324} & \textbf{0.9794} \\
+LSTM            & 0.9728 & 0.9664 & 0.9202 & 0.9742 \\
+GRU             & 0.9691 & 0.9615 & 0.9146 & 0.9710 \\
+\midrule
+\textit{Tuned Extra Trees (reference)} & \textit{0.9787} &
+\textit{0.9287} & \textit{0.9305} & \textit{0.9786} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 1D CNN achieved the highest macro F1 of all models evaluated,
+including the tuned classical pipeline: macro F1~=~0.9324 vs.\
+0.9305 for tuned Extra Trees, with identical accuracy (0.9787) and
+higher balanced accuracy (0.9575 vs.\ 0.9287).
+
+LSTM and GRU ranked below the 1D CNN on macro F1 (0.9202 and 0.9146
+respectively) but above it on balanced accuracy (LSTM~0.9664,
+GRU~0.9615).
+
+Training convergence for all three sequence models is shown in
+Figures~\ref{fig:lstm_loss_curve}--\ref{fig:1dcnn_accuracy_curve}.
+All three models converged without major overfitting, confirming that
+early stopping was effective.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/lstm_loss_curve.png}
+    \caption{LSTM training and validation loss curves.}
+    \label{fig:lstm_loss_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/lstm_accuracy_curve.png}
+    \caption{LSTM training and validation accuracy curves.}
+    \label{fig:lstm_accuracy_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/gru_loss_curve.png}
+    \caption{GRU training and validation loss curves.}
+    \label{fig:gru_loss_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/gru_accuracy_curve.png}
+    \caption{GRU training and validation accuracy curves.}
+    \label{fig:gru_accuracy_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/1d_cnn_loss_curve.png}
+    \caption{1D CNN training and validation loss curves.}
+    \label{fig:1dcnn_loss_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/1d_cnn_accuracy_curve.png}
+    \caption{1D CNN training and validation accuracy curves.}
+    \label{fig:1dcnn_accuracy_curve}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Spatial Robustness}
+\label{sec:spatial_robustness_results}
+% ============================================================
+
+The QUADKEY-level split does not guarantee that QUADKEYs from the same
+field polygon are kept together. The field/group-aware split keeps all
+QUADKEYs belonging to the same field in the same partition, so the
+model is evaluated on entirely unseen fields.
+
+The field/group split produced 17,491~training QUADKEYs (523~field
+groups) and 4,374~test QUADKEYs (102~field groups) with zero group
+overlap.
+
+Table~\ref{tab:spatial_robustness_results} compares performance under
+both splits for the three top models.
+
+\begin{table}[H]
+\centering
+\caption{Test performance under QUADKEY-level and field/group-level
+splits for the three top models.}
+\label{tab:spatial_robustness_results}
+\reporttablestyle
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Model} & \reportth{Split} & \reportth{Accuracy} &
+\reportth{Balanced acc.} & \reportth{Macro F1} &
+\reportth{Weighted F1} \\
+\midrule
+Extra Trees
+  & QUADKEY     & 0.9778 & 0.9289 & 0.9277 & 0.9777 \\
+  & Field/group & 0.9504 & 0.8012 & 0.8136 & 0.9475 \\
+\addlinespace
+XGBoost
+  & QUADKEY     & 0.9723 & 0.9216 & 0.9119 & 0.9724 \\
+  & Field/group & 0.9454 & 0.8323 & 0.8227 & 0.9460 \\
+\addlinespace
+Random Forest
+  & QUADKEY     & 0.9751 & 0.9208 & 0.9170 & 0.9749 \\
+  & Field/group & 0.9488 & 0.8008 & 0.8093 & 0.9465 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All three models show a drop in macro F1 of approximately 0.11--0.12
+points under the field/group split. Balanced accuracy drops from
+approximately 0.92 to 0.80--0.83. Under the field/group split,
+XGBoost achieved the highest macro F1 (0.8227) and balanced accuracy
+(0.8323) of the three models.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/final_split_strategy_comparison.png}
+    \caption{Macro F1 across QUADKEY-level test, field/group test,
+    and sequence model evaluations.}
+    \label{fig:final_split_strategy_comparison}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/spatial_robustness_split_comparison.png}
+    \caption{Macro F1 and balanced accuracy under QUADKEY and
+    field/group splits for the three top models.}
+    \label{fig:spatial_robustness_split_comparison}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Nyagatare District Inference}
+\label{sec:nyagatare_inference_results}
+% ============================================================
+
+The final tuned Extra Trees model was applied to the complete Nyagatare
+district using the Polars-based inference pipeline.
+
+\subsection*{Data volume processed}
+
+The raw Nyagatare Sentinel-2 dataset comprised 1,573,039,818~rows and
+19,864,787~unique QUADKEYs. After the February--August~2025 filter,
+749,535,814~rows remained. Quality control nullified 65.0\% of those
+observations. After gap filtering, interpolation, vegetation-index
+computation, feature extraction, and application of the Dynamic World
+cropland mask, the inference matrix contained
+\textbf{4,088,243~cropland QUADKEYs} and 37~selected features.
+
+\subsection*{Prediction summary}
+
+Each QUADKEY was assigned a crop label only if its predicted class
+probability met the class-specific threshold from
+Table~\ref{tab:per_class_thresholds}. QUADKEYs falling below the
+threshold were labelled \texttt{uncertain}.
+Table~\ref{tab:nyagatare_prediction_summary} shows the prediction
+breakdown.
+
+\begin{table}[H]
+\centering
+\caption{Nyagatare district prediction summary after per-class
+confidence thresholds. Percentages are relative to total cropland
+QUADKEYs (4,088,243).}
+\label{tab:nyagatare_prediction_summary}
+\reporttablestyle
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Label} & \reportth{QUADKEYs} &
+\reportth{Share of cropland} \\
+\midrule
+MAIZE        & 3{,}477{,}100 & 85.1\% \\
+BEAN         &   200{,}814   &  4.9\% \\
+RICE         &    81{,}473   &  2.0\% \\
+IRISH POTATO &     9{,}244   &  0.2\% \\
+Uncertain    &   319{,}612   &  7.8\% \\
+\midrule
+\textbf{Classified}     & \textbf{3{,}768{,}631} & \textbf{92.2\%} \\
+\textbf{Total cropland} & \textbf{4{,}088{,}243} & \textbf{100\%}  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+MAIZE accounted for 85.1\% of all cropland QUADKEYs. The uncertain
+category accounted for 319,612~QUADKEYs (7.8\% of all cropland
+QUADKEYs).
+
+\subsection*{Output raster}
+
+A full-resolution raster map was generated by converting each QUADKEY
+into a raster cell. The classified GeoTIFF (EPSG:3857) has
+7,666~columns and 5,819~rows at a pixel size of approximately
+9.55~metres. A separate confidence GeoTIFF was produced alongside
+the class map.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/nyagatare_crop_class_map_preview}
+    \caption{QGIS preview of the Nyagatare crop classification map.
+    Predicted classes (MAIZE, RICE, BEAN, IRISH POTATO, and Uncertain)
+    are shown over satellite imagery within the district boundary.}
+    \label{fig:nyagatare_crop_map}
+\end{figure}
+
+
+\FloatBarrier
+% ============================================================
+\section{Summary}
+\label{sec:results-summary}
+% ============================================================
+
+Table~\ref{tab:results-summary} maps each project objective to the
+method applied and the key result obtained.
+
+\begin{table}[H]
+\centering
+\caption{Summary of results by project objective.}
+\label{tab:results-summary}
+\reporttablestyle
+\begin{tabularx}{\textwidth}{@{}
+    >{\raggedright\arraybackslash}p{0.22\textwidth}
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+@{}}
+\toprule
+\rowcolor{chaptercolor}
+\reportth{Objective} & \reportth{Method} & \reportth{Key result} \\
+\midrule
+\reportobj{Obj.\ 1}\newline Data preparation &
+Multi-stage preprocessing, monocrop filtering, quality masking,
+gap filtering, interpolation &
+21,865 clean QUADKEYs; 30 dates per QUADKEY \\
+\addlinespace
+
+\reportobj{Obj.\ 2}\newline Feature engineering &
+Statistical and phenological extraction from 15 vegetation indices &
+96 features engineered; 37 selected via RFECV \\
+\addlinespace
+
+\reportobj{Obj.\ 3}\newline Class imbalance &
+Average-rank comparison across top-3 models, 7 strategies tested &
+Per-class SMOTE medium selected (avg.\ rank 1.67) \\
+\addlinespace
+
+\reportobj{Obj.\ 4}\newline Classical ML &
+5-model benchmark, top-3 selection, tuning &
+Tuned Extra Trees: macro F1~=~0.9305, accuracy~=~0.9787 \\
+\addlinespace
+
+\reportobj{Obj.\ 5}\newline Sequence models \& baselines &
+Baselines + 1D CNN, LSTM, GRU on raw temporal sequences &
+1D CNN achieved the highest macro F1 of all models:
+macro F1~=~0.9324, accuracy~=~0.9787 \\
+\addlinespace
+
+\reportobj{Obj.\ 6}\newline Spatial robustness &
+Field/group-aware split with StratifiedGroupKFold &
+Macro F1 dropped to 0.81--0.82 under the field/group split;
+XGBoost ranked highest among the three models on both macro F1
+and balanced accuracy \\
+\addlinespace
+
+\reportobj{Obj.\ 7}\newline District-scale inference &
+Nyagatare inference, Dynamic World cropland mask, per-class
+thresholding, GeoTIFF export &
+3,768,631~QUADKEYs classified (92.2\%);
+319,612~uncertain (7.8\%) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The tuned Extra Trees classifier achieved a macro F1 of 0.9305 and
+an accuracy of 0.9787 on the untouched test set, with 93 total errors
+out of 4,373 samples. The 1D CNN sequence model achieved a macro F1
+of 0.9324, the highest of all models evaluated. Under the stricter
+field/group split, macro F1 dropped by approximately 0.11 points
+across all three top models. These findings are interpreted and
+contextualised in Chapter~\ref{ch:discussion}.
