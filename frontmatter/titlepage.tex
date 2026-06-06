@@ -95,13 +95,34 @@
         anchor=north,
         align=center,
         text width=12.8cm,
-        font=\fontsize{12}{16}\selectfont
+        font=\fontsize{11}{14}\selectfont
     ] at ($(current page.north)+(1.2cm,-14.0cm)$)
     {
-        \textbf{Host Company:} Oracle Morocco Research and Development Center\\[0.55cm]
-        \textbf{Professional Supervisor:} Mitra Noosha\\[0.55cm]
-        \textbf{Academic Supervisor:} \SupervisorName{}\\[1.0cm]
-        \textbf{From} 15/01/2026 \textbf{to} 14/07/2026
+        \begin{tabular}{@{}r@{\hspace{0.35cm}}l@{}}
+            \textbf{Host Company} & Oracle Morocco Research and Development Center \\
+            \textbf{Internship Period} & 15/01/2026 to 14/07/2026 \\
+            \textbf{Defense Date} & June 18, 2026 \\
+        \end{tabular}
+
+        \vspace{0.55cm}
+
+        \begin{minipage}{5.8cm}
+            \centering
+            \textbf{Supervision}\\[0.25cm]
+            \textbf{Professional Supervisor}\\
+            Mitra Noosha\\[0.18cm]
+            \textbf{Academic Supervisor}\\
+            \SupervisorName{}
+        \end{minipage}
+        \hspace{0.85cm}
+        \begin{minipage}{5.8cm}
+            \centering
+            \textbf{Jury Composition}\\[0.25cm]
+            \textbf{Jury President}\\
+            Prof. Aouhassi\\[0.18cm]
+            \textbf{Examiner}\\
+            Prof. Hirchoua
+        \end{minipage}
     };
 
     % Academic year footer

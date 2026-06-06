@@ -2,10 +2,49 @@
 %  GENERAL CONCLUSION
 % ============================================================
 \chapter*{General Conclusion}
+\label{ch:con}
 \addcontentsline{toc}{chapter}{General Conclusion}
 \markboth{General Conclusion}{General Conclusion}
 
-\lipsum[80-81]
-\ornrule
-\medskip
-\noindent\textbf{Future Perspectives.}\quad\lipsum[82]
+This project addressed the challenge of producing reliable crop type maps in
+Rwanda using satellite imagery and machine learning. This problem is important
+because timely and spatially detailed crop information can support food security
+monitoring, agricultural planning, and decision-making. However, crop mapping in
+smallholder systems remains difficult due to small field sizes, cloud cover,
+class imbalance, spatial dependence, and the presence of mixed-cropping systems.
+
+To respond to this problem, an end-to-end crop classification pipeline was
+developed using Sentinel-2 time-series data and ground-truth crop labels. The
+work included data cleaning, temporal filtering, quality control, interpolation,
+vegetation-index computation, statistical and phenological feature extraction,
+feature selection, class-imbalance handling, model comparison, hyperparameter
+tuning, final evaluation, and district-scale inference. The final workflow was
+also designed to include uncertainty handling and GeoTIFF map export for GIS
+analysis.
+
+The results showed that Sentinel-2 time-series data can effectively distinguish
+major crop types when the temporal behaviour of vegetation is properly
+represented. The final model achieved strong performance on the labelled
+holdout dataset and was applied to Nyagatare District to generate a
+full-resolution crop classification map. The evaluation also showed that
+spatial generalisation is more challenging than standard QUADKEY-level testing
+suggests, especially when field/group-level separation is used.
+
+Despite these results, several limitations remain. The model was trained only
+on Season~B~2025 and on monocrop labels, so its generalisation to other seasons,
+years, districts, and mixed-crop systems has not been fully assessed. The
+Nyagatare inference map was not validated against independent district-level
+ground truth, and the comparison with agricultural survey statistics must be
+interpreted carefully because survey estimates include intercropping while the
+model predicts one dominant crop class per pixel.
+
+Future work should prioritise improved independent ground-truth data, if
+provided, to directly evaluate the produced monocrop maps for Nyagatare and
+other districts. The pipeline should also be tested across additional seasons
+and years to assess temporal robustness under different rainfall patterns,
+planting calendars, and crop growth conditions. Since the current model learned
+only from monocrop labels, future work should use intercropping information in
+the ground-truth data to identify mixed-crop areas separately. Finally,
+integrating Sentinel-1 SAR data and further developing temporal deep learning
+models could improve performance under cloud cover and reduce dependence on
+manually engineered features.

@@ -2,7 +2,32 @@
 %  ABSTRACT
 % ────────────────────────
 \frontchapter{Abstract}
-\noindent\textbf{Abstract:}\quad\lipsum[4]
+\noindent\textbf{Abstract:}\quad
+This report develops an end-to-end crop type mapping pipeline for Rwanda using
+Sentinel-2 time-series data and supervised machine learning. The study focuses
+on Season~B~2025 and the Harvard Dataverse Rwanda crop mapping dataset, with
+four monocrop classes: maize, rice, bean, and Irish potato. The workflow
+addresses key challenges in smallholder agricultural monitoring, including
+cloud contamination, temporal gaps, class imbalance, and possible spatial
+leakage.
+
+After preprocessing, the final modelling dataset contained 21,865 QUADKEYs,
+each represented by a 30-observation Sentinel-2 time series. Vegetation
+indices, statistical descriptors, and phenological features were extracted,
+then reduced from 96 to 37 selected features. Five classical machine-learning
+models and three sequence-based deep learning models were evaluated. The tuned
+Extra Trees classifier achieved an accuracy of 0.9787 and a macro F1 score of
+0.9305 on the test set, while the 1D CNN achieved a macro F1 score of 0.9324
+as a complementary benchmark.
+
+The final Extra Trees model was applied to Nyagatare District using a Dynamic
+World cropland mask and confidence thresholds. The inference covered
+4,088,243 cropland QUADKEYs, with 92.2\% classified and 7.8\% marked as
+uncertain. The results show that Sentinel-2 time series and machine learning
+can support operational crop mapping in Rwanda, while independent validation,
+multi-season testing, and explicit treatment of intercropping remain important
+future improvements.
 
 \medskip
-\noindent\textbf{Keywords:} keyword1, keyword2, keyword3, keyword4, keyword5.
+\noindent\textbf{Keywords:} crop type mapping, Sentinel-2, machine learning,
+Rwanda, QUADKEY, food security, remote sensing.

@@ -1,15 +1,412 @@
-% ── Appendix B — Acronyms ──
-\chapter{Acronyms}
-\label{app:acronyms}
+% ── Appendix B — Model and Evaluation Details ──
+\chapter{Model and Evaluation Details}
+\label{app:model_evaluation_details}
 
-\begin{tabular}{@{}ll@{}}
-  \toprule
-  \textbf{Acronym} & \textbf{Full Form} \\
-  \midrule
-  AI  & Artificial Intelligence \\
-  ML  & Machine Learning \\
-  API & Application Programming Interface \\
-  DL  & Deep Learning \\
-  IoT & Internet of Things \\
-  \bottomrule
+This appendix contains the supporting model-development details for
+Chapter~\ref{ch:method}. It groups the hyperparameter search spaces,
+final model configurations, class-imbalance formulas, sequence-model
+architecture diagrams, and evaluation metric definitions.
+
+
+% ============================================================
+\section{Model Hyperparameter Details}
+% ============================================================
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter search spaces used in \texttt{RandomizedSearchCV}
+for the three top-benchmark models. Gradient Boosting and Linear SVM
+were not tuned as they did not rank in the top~3.}
+\label{tab:search_spaces}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Model} & \textbf{Parameter} & \textbf{Candidate values} \\
+\midrule
+
+\multirow{4}{*}{Extra Trees}
+  & \texttt{n\_estimators}      & [300, 500, 800] \\
+  & \texttt{max\_features}      & [\texttt{sqrt}, \texttt{log2}, 0.5, 0.8, \texttt{None}] \\
+  & \texttt{min\_samples\_leaf} & [1, 2, 4, 8] \\
+  & \texttt{max\_depth}         & [\texttt{None}, 10, 20, 40] \\
+\addlinespace
+
+\multirow{7}{*}{XGBoost}
+  & \texttt{n\_estimators}      & [200, 300, 500, 800] \\
+  & \texttt{max\_depth}         & [3, 4, 5, 6, 8] \\
+  & \texttt{learning\_rate}     & [0.01, 0.03, 0.05, 0.08, 0.1] \\
+  & \texttt{subsample}          & [0.7, 0.8, 0.9, 1.0] \\
+  & \texttt{colsample\_bytree}  & [0.7, 0.8, 0.9, 1.0] \\
+  & \texttt{min\_child\_weight} & [1, 3, 5, 7] \\
+  & \texttt{gamma}              & [0, 0.1, 0.2, 0.5] \\
+\addlinespace
+
+\multirow{5}{*}{Random Forest}
+  & \texttt{n\_estimators}      & [300, 500, 800] \\
+  & \texttt{max\_features}      & [\texttt{sqrt}, \texttt{log2}, 0.5, 0.8] \\
+  & \texttt{min\_samples\_leaf} & [1, 2, 4, 8] \\
+  & \texttt{max\_depth}         & [\texttt{None}, 10, 20, 40] \\
+  & \texttt{class\_weight}      & [\texttt{balanced}, \texttt{balanced\_subsample}] \\
+
+\bottomrule
 \end{tabular}
+\normalsize
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter configurations for all five benchmarked classical
+models. For the top-3 models (Extra Trees, XGBoost, Random Forest), both
+the benchmark default and the best tuned parameters are shown. Gradient
+Boosting and Linear SVM were not tuned as they did not rank in the
+top~3 by cross-validated macro F1.}
+\label{tab:hyperparams}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Parameter} & \textbf{Benchmark default} &
+\textbf{Tuned value} \\
+\midrule
+
+\multirow{5}{*}{Extra Trees}
+  & \texttt{n\_estimators}      & 300               & 800 \\
+  & \texttt{max\_features}      & \textit{default}  & \texttt{None} \\
+  & \texttt{min\_samples\_leaf} & \textit{default}  & 1 \\
+  & \texttt{max\_depth}         & \textit{default}  & 40 \\
+  & \texttt{class\_weight}      & \texttt{balanced} & \texttt{balanced} \\
+\addlinespace
+
+\multirow{7}{*}{XGBoost}
+  & \texttt{n\_estimators}      & 300  & 800 \\
+  & \texttt{max\_depth}         & 5    & 6 \\
+  & \texttt{learning\_rate}     & 0.05 & 0.05 \\
+  & \texttt{subsample}          & 0.9  & 0.7 \\
+  & \texttt{colsample\_bytree}  & 0.9  & 0.7 \\
+  & \texttt{min\_child\_weight} & \textit{default} & 3 \\
+  & \texttt{gamma}              & \textit{default} & 0 \\
+\addlinespace
+
+\multirow{5}{*}{Random Forest}
+  & \texttt{n\_estimators}      & 250               & 800 \\
+  & \texttt{max\_features}      & \textit{default}  & \texttt{log2} \\
+  & \texttt{min\_samples\_leaf} & \textit{default}  & 1 \\
+  & \texttt{max\_depth}         & \textit{default}  & 20 \\
+  & \texttt{class\_weight}      & \texttt{balanced} & \texttt{balanced} \\
+\addlinespace
+
+\multirow{2}{*}{Gradient Boosting}
+  & \texttt{loss}           & \texttt{log\_loss}  & --- \\
+  & \texttt{sample\_weight} & balanced (computed) & --- \\
+\addlinespace
+
+\multirow{2}{*}{Linear SVM}
+  & \texttt{C}              & \textit{default} (1.0) & --- \\
+  & \texttt{class\_weight}  & \texttt{balanced}      & --- \\
+
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
+
+
+% ============================================================
+\section{Class Imbalance and Resampling Details}
+% ============================================================
+
+\paragraph{Class weighting.}
+Balanced class weighting modifies the learning objective so that mistakes
+on minority classes receive larger penalties. The balanced weight assigned
+to class \(c\) is
+
+\begin{equation}
+\label{eq:class_weight}
+w_c =
+\frac{N}{K n_c},
+\end{equation}
+
+where \(N\) is the total number of training samples, \(K\) is the number
+of classes, and \(n_c\) is the number of training samples in class \(c\).
+Using the training counts in Chapter~\ref{ch:method}, the approximate
+balanced class weights are:
+
+\[
+w_{\text{MAIZE}} \approx 0.44,\quad
+w_{\text{RICE}} \approx 0.71,\quad
+w_{\text{BEAN}} \approx 5.37,\quad
+w_{\text{IRISH POTATO}} \approx 6.82.
+\]
+
+For models without a native \texttt{class\_weight} interface in this
+workflow, the same principle is implemented through per-sample weights:
+\begin{equation}
+\label{eq:sample_weight}
+s_i = w_{y_i},
+\end{equation}
+where \(s_i\) is the sample weight of observation \(i\), and \(w_{y_i}\)
+is the balanced class weight of its true class.
+
+\paragraph{SMOTE.}
+For a minority-class sample \(x_i\) and one of its \(k\)-nearest minority
+neighbours \(x_j\), SMOTE generates a synthetic sample by interpolation:
+
+\begin{equation}
+\label{eq:smote_formula}
+x_{\mathrm{new}}
+=
+x_i + \lambda (x_j - x_i),
+\quad
+\lambda \sim U(0,1).
+\end{equation}
+
+In this project, SMOTE is applied with \(k=5\) nearest neighbours. The
+targeted per-class SMOTE strategies use RICE as the reference class rather
+than MAIZE. With \(6{,}194\) RICE training samples, the four tested targets
+are:
+
+\[
+\begin{aligned}
+\text{light target}  &= 0.4 \times 6{,}194 \approx 2{,}478,\\
+\text{medium target} &= 0.6 \times 6{,}194 \approx 3{,}716,\\
+\text{strong target} &= 0.8 \times 6{,}194 \approx 4{,}955,\\
+\text{rice-level target} &= 1.0 \times 6{,}194 = 6{,}194.
+\end{aligned}
+\]
+
+Under the selected per-class SMOTE medium setting, BEAN and IRISH POTATO
+are each oversampled to approximately \(3{,}716\) samples:
+
+\[
+\begin{aligned}
+\text{BEAN synthetic samples} &\approx 3{,}716 - 814 = 2{,}902,\\
+\text{IRISH POTATO synthetic samples} &\approx 3{,}716 - 641 = 3{,}075.
+\end{aligned}
+\]
+
+\paragraph{ADASYN.}
+ADASYN estimates local classification difficulty around each minority
+sample \(x_i\) from its nearest-neighbour region:
+
+\begin{equation}
+\label{eq:adasyn_difficulty}
+r_i =
+\frac{\Delta_i}{k},
+\end{equation}
+
+where \(\Delta_i\) is the number of majority-class samples among the
+\(k\)-nearest neighbours of \(x_i\). The difficulty values are normalised as
+
+\begin{equation}
+\label{eq:adasyn_normalised}
+\hat{r}_i =
+\frac{r_i}{\sum_i r_i}.
+\end{equation}
+
+The number of synthetic samples generated around minority sample \(x_i\) is
+
+\begin{equation}
+\label{eq:adasyn_generation}
+g_i =
+\hat{r}_i G,
+\end{equation}
+
+where \(G\) is the total number of synthetic samples to be generated.
+
+\paragraph{Leakage-safe resampling.}
+All resampling is applied strictly inside each cross-validation fold:
+
+\begin{center}
+\begin{tikzpicture}[
+    flowbox/.style={
+        draw=accentgold!85!chaptercolor,
+        fill=accentgold!10,
+        rounded corners=2pt,
+        align=center,
+        font=\small\bfseries,
+        text=chaptercolor,
+        inner xsep=8pt,
+        inner ysep=6pt,
+        text width=0.72\textwidth
+    },
+    flowarrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+]
+    \node[flowbox] (split) at (0,0) {Split fold};
+    \node[flowbox] (resample) at (0,-1.25) {Resample fold-training subset only};
+    \node[flowbox] (fit) at (0,-2.50) {Fit model};
+    \node[flowbox] (evaluate) at (0,-3.75) {Evaluate on untouched fold-validation subset};
+
+    \draw[flowarrow] (split) -- (resample);
+    \draw[flowarrow] (resample) -- (fit);
+    \draw[flowarrow] (fit) -- (evaluate);
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Weighted sequence loss.}
+For sequence models, class imbalance is handled through class weights on
+the original temporal sequences. The weighted sparse categorical
+cross-entropy is:
+
+\begin{equation}
+\label{eq:weighted_sequence_loss}
+\mathcal{L}_{\mathrm{weighted}}
+=
+-\frac{1}{N}
+\sum_{i=1}^{N}
+w_{y_i}
+\log p_{i,y_i},
+\end{equation}
+
+where \(y_i\) is the true class of sample \(i\), \(w_{y_i}\) is the weight
+of that class, and \(p_{i,y_i}\) is the predicted probability assigned to
+the true class.
+
+
+% ============================================================
+\section{Deep Learning Architecture Diagrams}
+% ============================================================
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.75cm,
+        block/.style={
+            draw=accentgold!85!chaptercolor,
+            fill=accentgold!10,
+            rounded corners=3pt,
+            align=center,
+            font=\small\bfseries,
+            text=chaptercolor,
+            minimum width=4.8cm,
+            minimum height=0.8cm
+        },
+        arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+    ]
+        \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+        \node[block, below=of input] (lstm) {LSTM layer\\64 units, dropout \(=0.2\)};
+        \node[block, below=of lstm] (dense) {Dense layer\\64 units, ReLU};
+        \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+        \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+        \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+        \draw[arrow] (input) -- (lstm);
+        \draw[arrow] (lstm) -- (dense);
+        \draw[arrow] (dense) -- (dropout);
+        \draw[arrow] (dropout) -- (output);
+        \draw[arrow] (output) -- (pred);
+    \end{tikzpicture}
+    \caption{LSTM sequence model architecture used for crop type classification from Sentinel-2 time series.}
+    \label{fig:lstm_arch}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.75cm,
+        block/.style={
+            draw=accentgold!85!chaptercolor,
+            fill=accentgold!10,
+            rounded corners=3pt,
+            align=center,
+            font=\small\bfseries,
+            text=chaptercolor,
+            minimum width=4.8cm,
+            minimum height=0.8cm
+        },
+        arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+    ]
+        \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+        \node[block, below=of input] (gru) {GRU layer\\64 units, dropout \(=0.2\)};
+        \node[block, below=of gru] (dense) {Dense layer\\64 units, ReLU};
+        \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+        \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+        \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+        \draw[arrow] (input) -- (gru);
+        \draw[arrow] (gru) -- (dense);
+        \draw[arrow] (dense) -- (dropout);
+        \draw[arrow] (dropout) -- (output);
+        \draw[arrow] (output) -- (pred);
+    \end{tikzpicture}
+    \caption{GRU sequence model architecture used for crop type classification from Sentinel-2 time series.}
+    \label{fig:gru_arch}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.65cm,
+        block/.style={
+            draw=accentgold!85!chaptercolor,
+            fill=accentgold!10,
+            rounded corners=3pt,
+            align=center,
+            font=\small\bfseries,
+            text=chaptercolor,
+            minimum width=5.4cm,
+            minimum height=0.75cm
+        },
+        arrow/.style={->, >=stealth, line width=1pt, draw=accentgold}
+    ]
+        \node[block] (input) {Input sequence\\\(30\) dates \(\times F\) features};
+        \node[block, below=of input] (conv1) {Conv1D\\64 filters, kernel size \(=3\), ReLU};
+        \node[block, below=of conv1] (bn) {Batch Normalisation};
+        \node[block, below=of bn] (conv2) {Conv1D\\64 filters, kernel size \(=3\), ReLU};
+        \node[block, below=of conv2] (gap) {Global Average Pooling 1D};
+        \node[block, below=of gap] (dense) {Dense layer\\64 units, ReLU};
+        \node[block, below=of dense] (dropout) {Dropout\\rate \(=0.3\)};
+        \node[block, below=of dropout] (output) {Output layer\\4 units, softmax};
+        \node[block, below=of output, fill=chaptercolor!5] (pred) {Predicted crop class};
+
+        \draw[arrow] (input) -- (conv1);
+        \draw[arrow] (conv1) -- (bn);
+        \draw[arrow] (bn) -- (conv2);
+        \draw[arrow] (conv2) -- (gap);
+        \draw[arrow] (gap) -- (dense);
+        \draw[arrow] (dense) -- (dropout);
+        \draw[arrow] (dropout) -- (output);
+        \draw[arrow] (output) -- (pred);
+    \end{tikzpicture}
+    \caption{1D CNN sequence model architecture used for crop type classification from Sentinel-2 time series.}
+    \label{fig:cnn_arch}
+\end{figure}
+
+
+% ============================================================
+\section{Evaluation Metric Definitions}
+% ============================================================
+
+\paragraph{Macro F1.}
+For each class \(c\), the F1 score is:
+\begin{equation}
+F1_c = \frac{2 \cdot P_c \cdot R_c}{P_c + R_c}
+\end{equation}
+where \(P_c\) is precision and \(R_c\) is recall. Macro F1 is the
+unweighted mean across all classes:
+\begin{equation}
+F1_{\mathrm{macro}} = \frac{1}{K} \sum_{c=1}^{K} F1_c .
+\end{equation}
+
+\paragraph{Weighted F1.}
+\begin{equation}
+F1_{\mathrm{weighted}} =
+\frac{\sum_{c=1}^{K} n_c \cdot F1_c}{\sum_{c=1}^{K} n_c},
+\end{equation}
+where \(n_c\) is the number of true samples of class \(c\).
+
+\paragraph{Balanced Accuracy.}
+\begin{equation}
+\mathrm{BA} = \frac{1}{K} \sum_{c=1}^{K} R_c .
+\end{equation}
+
+\paragraph{Cohen's Kappa.}
+\begin{equation}
+\kappa = \frac{p_o - p_e}{1 - p_e},
+\end{equation}
+where \(p_o\) is observed agreement and \(p_e\) is expected agreement by
+chance.
+
+\paragraph{AUC metrics.}
+ROC-AUC is computed using a one-vs-rest macro-averaged receiver operating
+characteristic curve. PR-AUC is computed per class from the
+precision--recall curve and averaged across classes; it is especially
+informative for minority-class performance because it does not reward the
+large true-negative pool in imbalanced datasets.

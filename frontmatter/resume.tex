@@ -2,7 +2,36 @@
 %  FRENCH SUMMARY
 % ────────────────────────
 \frontchapter{Résumé}
-\noindent\textbf{Résumé :}\quad\lipsum[3]
+\noindent\textbf{Résumé :}\quad
+Ce rapport développe une chaîne complète de cartographie des types de cultures
+au Rwanda à partir de séries temporelles Sentinel-2 et de modèles
+d'apprentissage supervisé. L'étude porte sur la Saison~B~2025 et utilise le
+jeu de données Harvard Dataverse, en considérant quatre classes de
+monoculture : maïs, riz, haricot et pomme de terre irlandaise. Le travail
+répond aux principales difficultés du suivi agricole en contexte de petites
+exploitations, notamment la couverture nuageuse, les lacunes temporelles, le
+déséquilibre des classes et le risque de fuite spatiale.
+
+Après prétraitement, le jeu de données final contient 21\,865 QUADKEYs,
+chacun représenté par une série temporelle Sentinel-2 de 30 observations. Des
+indices de végétation, des variables statistiques et des descripteurs
+phénologiques ont été extraits, puis réduits de 96 à 37 variables
+sélectionnées. Cinq modèles classiques d'apprentissage automatique et trois
+modèles profonds basés sur les séquences ont été évalués. Le modèle Extra
+Trees optimisé a obtenu une exactitude de 0.9787 et un score macro F1 de
+0.9305 sur le jeu de test, tandis que le modèle 1D CNN a atteint un score
+macro F1 de 0.9324 comme référence complémentaire.
+
+Le modèle final Extra Trees a été appliqué au district de Nyagatare à l'aide
+d'un masque de terres cultivées Dynamic World et de seuils de confiance.
+L'inférence a couvert 4\,088\,243 QUADKEYs agricoles, dont 92.2\% ont reçu
+une classe de culture et 7.8\% ont été classés comme incertains. Les résultats
+montrent que les séries temporelles Sentinel-2 et l'apprentissage automatique
+peuvent soutenir la cartographie opérationnelle des cultures au Rwanda, tout
+en soulignant la nécessité d'une validation spatiale indépendante, de tests
+multi-saisons et d'une meilleure prise en compte de l'interculture.
 
 \medskip
-\noindent\textbf{Mots-clés :} mot1, mot2, mot3, mot4, mot5.
+\noindent\textbf{Mots-clés :} cartographie des cultures, Sentinel-2,
+apprentissage automatique, Rwanda, QUADKEY, sécurité alimentaire,
+télédétection.
