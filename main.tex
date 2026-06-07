@@ -124,7 +124,7 @@
 
 % ── Paragraph (5th-level heading) ──
 \titleformat{\paragraph}[runin]
-  {\normalfont\normalsize\bfseries\color{gray!70!black}}
+  {\normalfont\normalsize\bfseries\color{sectioncolor!90!black}}
   {\theparagraph}{1em}{#1\quad}
 
 % ── Subparagraph ──
@@ -134,9 +134,11 @@
 
 % ─────────────────────────────────────────────
 %  DEPTH COUNTERS
+%  Keep academic numbering to subsubsection level.
+%  Paragraph and subparagraph headings remain unnumbered.
 % ─────────────────────────────────────────────
-\setcounter{secnumdepth}{5}
-\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
 
 % ─────────────────────────────────────────────
 %  TABLE OF CONTENTS STYLING  (tocloft)

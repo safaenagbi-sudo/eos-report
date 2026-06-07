@@ -31,98 +31,106 @@
         \includegraphics[width=4.0cm]{figures/logoENsam.png}
     };
 
-    % Oracle logo
-    \node[anchor=north east]
-        at ($(current page.north east)+(-1.6cm,-1.35cm)$)
-    {
-        \includegraphics[width=3.4cm]{figures/Oracle_rgb.png}
-    };
-
     % Main title
     \node[
         anchor=north,
         align=center,
         text width=13.5cm,
-        font=\fontsize{18}{22}\selectfont\bfseries
-    ] at ($(current page.north)+(1.2cm,-4.6cm)$)
-    {End-of-Studies Internship Report};
+        font=\fontsize{18.5}{22}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-4.35cm)$)
+    {Graduation Project Thesis};
+
+    % Degree purpose
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.5cm,
+        font=\fontsize{12.3}{15}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-5.45cm)$)
+    {Presented for the purpose of obtaining the title\\[0.18cm]
+     of State Engineer};
 
     % Program
     \node[
         anchor=north,
         align=center,
         text width=13.5cm,
-        font=\fontsize{12}{15}\selectfont
-    ] at ($(current page.north)+(1.2cm,-5.5cm)$)
-    {Program: Artificial Intelligence and Computer Engineering};
+        font=\fontsize{11.8}{14.5}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-7.05cm)$)
+    {Specialization: Artificial Intelligence and Computer Science};
 
     % Student name
     \node[
         anchor=north,
         align=center,
         text width=13.5cm,
-        font=\fontsize{15}{18}\selectfont\bfseries
-    ] at ($(current page.north)+(1.2cm,-7.1cm)$)
-    {$\bullet$ $\bullet$ Safae Nagbi $\bullet$ $\bullet$};
+        font=\fontsize{14.2}{17}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-8.45cm)$)
+    {$\ast$ $\ast$ SAFAE NAGBI $\ast$ $\ast$};
 
     % Title label
     \node[
         anchor=north,
         align=center,
         text width=13.5cm,
-        font=\fontsize{13}{16}\selectfont\bfseries
-    ] at ($(current page.north)+(1.2cm,-8.7cm)$)
-    {Title};
+        font=\fontsize{12.2}{15}\selectfont
+    ] at ($(current page.north)+(1.2cm,-10.15cm)$)
+    {Title:};
 
-    % Project title box
-    \node[
-        anchor=north,
-        align=center,
-        text width=12.5cm,
-        rounded corners=4pt,
-        draw=ensamplum!45,
-        line width=0.7pt,
-        inner xsep=14pt,
-        inner ysep=14pt,
-        font=\fontsize{16}{21}\selectfont\itshape
-    ] at ($(current page.north)+(1.2cm,-9.4cm)$)
-    {Agricultural Intelligence:\\[0.25cm]
-     Crop Mapping using Machine Learning\\
-     and Sentinel-2 Satellite Imagery};
-
-    % Information block
+    % Project title
     \node[
         anchor=north,
         align=center,
         text width=12.8cm,
-        font=\fontsize{11}{14}\selectfont
-    ] at ($(current page.north)+(1.2cm,-14.0cm)$)
+        font=\fontsize{14.8}{18.5}\selectfont\bfseries
+    ] at ($(current page.north)+(1.2cm,-11.05cm)$)
+    {Agricultural Intelligence:\\
+     Crop Mapping using Machine Learning\\
+     and Sentinel-2 Satellite Imagery};
+
+    % Host organisation
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.2cm,
+        font=\fontsize{11.2}{13.5}\selectfont
+    ] at ($(current page.north)+(1.2cm,-13.95cm)$)
+    {Host Organization: Oracle Morocco Research and Development Center};
+
+    % Oracle logo as host organisation mark
+    \node[
+        anchor=north,
+        align=center
+    ] at ($(current page.north)+(1.2cm,-14.55cm)$)
     {
-        \begin{tabular}{@{}r@{\hspace{0.35cm}}l@{}}
-            \textbf{Host Company} & Oracle Morocco Research and Development Center \\
-            \textbf{Internship Period} & 15/01/2026 to 14/07/2026 \\
-            \textbf{Defense Date} & June 18, 2026 \\
+        \includegraphics[width=4.0cm]{figures/Oracle_rgb.png}
+    };
+
+    % Internship period
+    \node[
+        anchor=north,
+        align=center,
+        text width=13.2cm,
+        font=\fontsize{11.5}{14}\selectfont
+    ] at ($(current page.north)+(1.2cm,-15.8cm)$)
+    {From 15/01/2026 to 14/07/2026};
+
+    % Committee
+    \node[
+        anchor=north,
+        align=center,
+        text width=14.4cm,
+        font=\fontsize{9.8}{11.8}\selectfont
+    ] at ($(current page.north)+(1.2cm,-19.0cm)$)
+    {
+        \textbf{Defended on June 18, 2026, in front of the dissertation committee:}\\[0.35cm]
+        \renewcommand{\arraystretch}{1.18}
+        \begin{tabular}{@{}c@{\hspace{0.35cm}}p{3.15cm}@{\hspace{0.45cm}}p{4.85cm}@{\hspace{0.45cm}}l@{}}
+            $\bullet$ & Prof. Aouhassi      & Professor at ENSAM Casablanca & President \\
+            $\bullet$ & Prof. Hirchoua      & Professor at ENSAM Casablanca & Examiner \\
+            $\bullet$ & \SupervisorName{}   & Professor at ENSAM Casablanca & Academic Supervisor \\
+            $\bullet$ & Mitra Noosha        & Oracle                        & Company Supervisor \\
         \end{tabular}
-
-        \vspace{0.55cm}
-
-        \begin{minipage}{5.8cm}
-            \centering
-            \textbf{Supervision}\\[0.25cm]
-            \textbf{Professional Supervisor}\\
-            Mitra Noosha\\[0.18cm]
-            \textbf{Academic Supervisor}\\
-            \SupervisorName{}
-        \end{minipage}
-        \hspace{0.85cm}
-        \begin{minipage}{5.8cm}
-            \centering
-            \textbf{Jury Composition}\\[0.25cm]
-            \textbf{Jury President}\\
-            Prof. Aouhassi\\[0.18cm]
-            \textbf{Examiner}\\
-            Prof. Hirchoua
-        \end{minipage}
     };
 
     % Academic year footer
