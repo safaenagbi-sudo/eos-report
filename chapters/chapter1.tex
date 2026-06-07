@@ -154,10 +154,10 @@ Overall, Oracle's organizational culture is characterized by a commitment to inn
 
 Before diving into the core issue of the topic, it is useful to provide some
 background information. The team I worked with during this internship was called
-``Digital Government'' --- which directly reflects the primary objective this
-project aims to serve.
+``Digital Government'', a name that directly reflects the primary objective
+this project aims to serve.
 
-Digital government services --- also referred to as e-government --- refer to
+Digital government services, also referred to as e-government, refer to
 the use of information and communication technologies to improve the efficiency,
 effectiveness, and transparency of government operations. These systems reduce
 bureaucratic delays, minimise paperwork, and enhance the overall quality of
@@ -173,19 +173,19 @@ this project is the sharing of agricultural satellite data between a national
 space agency and a ministry of agriculture to inform food security decisions.
 
 G2C focuses on delivering government services and information directly to
-citizens --- making them more accessible, timely, and actionable. In the context
+citizens by making them more accessible, timely, and actionable. In the context
 of agriculture, this translates to providing smallholder farmers and local
 administrations with accurate, up-to-date crop production intelligence.
 
-G2E refers to internal government process management and employee communication
---- for example, equipping field agents with data-driven tools to support their
+G2E refers to internal government process management and employee communication,
+for example, equipping field agents with data-driven tools to support their
 monitoring activities.
 
 The Digital Government team at Oracle aims to leverage existing government data
 and modern technologies to solve real-world problems across sectors including
 agriculture, healthcare, and education. This project sits firmly within the
 agricultural domain and contributes to Oracle's Government Data Intelligence for
-Agriculture platform --- launched in September 2025 --- which supports
+Agriculture platform, launched in September 2025, which supports
 governments in building more resilient and data-driven food systems.
 
 It is important to note that this project is part of an ongoing collaboration
@@ -305,7 +305,7 @@ relevant to government decision-making.
 
 The solution is an end-to-end crop type classification pipeline that
 reads satellite imagery and produces a map showing what crop is growing
-in each field across Rwanda --- without requiring a single field survey.
+in each field across Rwanda without requiring a single field survey.
 
 \paragraph{From raw satellite data to a clean time series.}
 Sentinel-2 satellites pass over Rwanda every five days, capturing the
@@ -319,12 +319,12 @@ clean, complete seasonal time series for each pixel across the
 study area.
 
 \paragraph{Teaching the model what each crop looks like.}
-Different crops grow differently throughout the season --- maize rises
+Different crops grow differently throughout the season: maize rises
 quickly to a high peak and then drops sharply, while beans grow more
 slowly and plateau earlier. These seasonal patterns, visible in the
 satellite signal, are what the model learns to distinguish between
 crop types. To capture them, a rich set of features was extracted
-from each pixel's time series --- describing not just the average
+from each pixel's time series, describing not just the average
 spectral signal, but also its shape, timing, and intensity across
 the growing season.
 
@@ -337,9 +337,9 @@ to ensure that the model gives equal attention to all four crop types,
 regardless of how frequently they appear in the training data.
 
 \paragraph{Comparing model approaches.}
-Both classical machine learning models --- which operate on the
-extracted seasonal features --- and modern deep learning models ---
-which learn directly from the raw time series --- were trained and
+Both classical machine learning models, which operate on the
+extracted seasonal features, and modern deep learning models,
+which learn directly from the raw time series, were trained and
 evaluated. This comparison provides insight into whether the manual
 feature engineering step adds value over letting the model discover
 temporal patterns on its own.
@@ -349,7 +349,7 @@ This project shows that it is possible to produce accurate, national-scale
 crop type maps from freely available satellite data, without sending a
 single surveyor into the field. The resulting pipeline is reproducible,
 openly documented, and directly integrable into Oracle's Government
-Data Intelligence for Agriculture platform --- providing a practical
+Data Intelligence for Agriculture platform, providing a practical
 blueprint for scaling this approach to other countries, other seasons,
 and other crops.
 

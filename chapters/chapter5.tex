@@ -34,7 +34,7 @@ in Rwanda.
 
 The preprocessing pipeline reduced 1,788,552 raw observations to
 21,865 clean QUADKEYs. The most revealing reduction was full-row
-deduplication, which removed 502,800 rows --- 33.7\% of the temporally
+deduplication, which removed 502,800 rows, representing 33.7\% of the temporally
 filtered dataset. This high duplication rate is a direct consequence
 of the spatial join process: when a ground-truth polygon overlaps
 multiple Sentinel-2 tile export boundaries, the same observation is
@@ -67,8 +67,8 @@ least some class-discriminative signal. However, individual
 statistical significance does not imply non-redundancy. Two features
 can each be significantly associated with class membership while
 still encoding the same underlying biophysical dimension. The ANOVA
-stage therefore served primarily as a quality confirmation ---
-ruling out completely uninformative features --- rather than as a
+stage therefore served primarily as a quality confirmation,
+ruling out completely uninformative features, rather than as a
 dimensionality reduction step.
 
 The dominance of moisture and dryness indices in the Random Forest
@@ -84,9 +84,9 @@ SWIR-based moisture indices for paddy rice
 mapping~\cite{xiao2005}.
 
 Reducing from 96 to 37 features via RFECV removed redundant index
-variants --- particularly the multiple NDRE formulations
+variants, particularly the multiple NDRE formulations
 (NDRE\_B06, NDRE\_B07, NDRE\_B8A\_B05), which encode similar
-red-edge information at slightly different wavelengths --- while
+red-edge information at slightly different wavelengths, while
 retaining the most discriminative statistical and phenological
 descriptors. The result is a leaner feature set that trains faster,
 generalises better, and is directly interpretable in agronomic
@@ -117,7 +117,7 @@ do not penalise it for false positives. A model that aggressively
 predicts minority classes to achieve high recall on BEAN and IRISH
 POTATO would score well on balanced accuracy while producing many
 false positives. For an operational crop map, false positives are
-as costly as false negatives --- incorrectly labelling a maize field
+as costly as false negatives, since incorrectly labelling a maize field
 as bean produces the same error in area estimation as failing to
 detect a real bean field. Macro F1 penalises both types of error
 equally and is therefore the more appropriate operational metric.
@@ -150,8 +150,8 @@ penalised.
 
 Full SMOTE (average rank 5.00) fell into the opposite failure mode.
 Oversampling to the MAIZE count of 9,843 would generate approximately
-9,000 synthetic samples per minority class --- more than eleven times
-the number of real examples --- risking synthetic samples dominating
+9,000 synthetic samples per minority class, more than eleven times
+the number of real examples, risking synthetic samples dominating
 the learned decision boundary in regions of the feature space that
 do not correspond to real crop spectral signatures.
 
@@ -195,7 +195,7 @@ BEAN achieved the lowest recall (0.8039). Two factors explain this.
 First, beans and maize have overlapping spectral and phenological
 signatures in the 37-feature space, particularly in their
 mid-season vegetative growth phase. Second, with only 814 training
-QUADKEYs --- the smallest real sample size of the four classes ---
+QUADKEYs, the smallest real sample size of the four classes,
 the model has limited coverage of the true bean feature
 distribution, making it more likely to assign ambiguous bean
 observations to the neighbouring maize cluster.
@@ -259,8 +259,8 @@ district scale and making national-scale deployment across Rwanda's
 \label{subsec:disc_sequence}
 % ------------------------------------------------------------
 
-The 1D CNN result --- macro F1 of 0.9324 without any hand-crafted
-feature engineering --- is the most theoretically interesting
+The 1D CNN result, macro F1 of 0.9324 without any hand-crafted
+feature engineering, is the most theoretically interesting
 finding of this study. It demonstrates that the raw 30-timestep
 Sentinel-2 sequence contains sufficient discriminative temporal
 structure for strong crop-type classification, and that
@@ -270,9 +270,9 @@ this structure automatically.
 The 1D CNN outperforming both LSTM and GRU on macro F1 suggests
 that local temporal patterns are more discriminative than long-range
 sequential dependencies for this problem. The key events that
-distinguish crops --- the flooded transplanting window for rice,
+distinguish crops, such as the flooded transplanting window for rice,
 the rapid green-up for maize, the slower canopy development for
-beans --- are relatively short and localised in the 30-observation
+beans, are relatively short and localised in the 30-observation
 Season~B window. A convolutional filter with kernel size 3 captures
 these local transitions directly, without the overhead of a
 recurrent hidden state that tracks dependencies across the full
@@ -288,7 +288,7 @@ F1 overall.
 For future work, a hyperparameter-tuned 1D CNN operating on raw
 Sentinel-2 sequences may eliminate the feature engineering step
 entirely while matching or exceeding the classical pipeline's
-performance --- provided that GPU inference becomes available in
+performance, provided that GPU inference becomes available in
 the production environment.
 
 
@@ -400,7 +400,7 @@ This divergence is structurally expected and should not be interpreted
 automatically as model failure.
 
 The SAS Season~B~2025 (Table~15) reports that \textbf{75.9\% of
-cultivated area in Nyagatare is under intercropping} --- the
+cultivated area in Nyagatare is under intercropping}, the
 highest rate in the Eastern Province (national average:
 59.9\%)~\cite{nisr2025sas}. Bean cultivation in the district is
 predominantly practised as intercrop with maize, where bean plants
@@ -410,7 +410,7 @@ measures what is physically planted regardless of whether crops
 share a field.
 
 The model was trained exclusively on monocrop-filtered ground-truth
-labels --- pure maize signatures and pure bean signatures learned
+labels: pure maize signatures and pure bean signatures learned
 separately. At inference time in Nyagatare, the model encounters
 a landscape where the majority of cultivated area is intercropped.
 When beans are intercropped with maize on the same plot, the 10~m
@@ -419,7 +419,7 @@ been trained on. The model assigns the label of whichever pure
 signature the mixed pixel most closely resembles. Because maize
 grows taller than beans and its leaf area index is larger, it
 dominates the canopy reflectance of the intercropped pixel. The
-model therefore predicts MAIZE --- the spectrally correct answer
+model therefore predicts MAIZE, the spectrally correct answer
 given what it was trained to recognise, even if it is
 agronomically incomplete at the field level.
 
@@ -458,8 +458,8 @@ performance (macro F1~=~0.9305) for a four-class imbalanced
 problem in a smallholder farming landscape. The result is achieved
 through a reproducible, modular pipeline that is operational at
 district scale on CPU-only infrastructure. The three-stage feature
-selection cascade --- ANOVA with Bonferroni correction, Random
-Forest importance ranking, and RFECV --- provides a transferable
+selection cascade, consisting of ANOVA with Bonferroni correction, Random
+Forest importance ranking, and RFECV, provides a transferable
 design pattern for feature reduction in remote sensing
 classification tasks where redundant vegetation indices are common.
 
@@ -507,7 +507,7 @@ Unlike the survey, the satellite-derived map covers every
 cropland pixel in the district without sampling.
 
 At the \textbf{forecasting} level, the crop type map is produced
-at the end of Season~B --- after the full February--August time
+at the end of Season~B, after the full February--August time
 series is available but before the harvest is fully concluded.
 This end-of-season map provides input to the platform's yield
 and production models, giving policymakers an early signal of
@@ -558,7 +558,7 @@ measuring fundamentally different quantities. The SAS counts
 all crops planted on a field; the satellite classifier
 identifies the dominant spectral signal in each 10~m pixel.
 In a high-intercropping system, these two measurements diverge
-structurally --- not because one is wrong, but because they
+structurally, not because one is wrong, but because they
 answer different questions.
 
 Any study that compares remote sensing crop area estimates
@@ -589,9 +589,9 @@ The model was trained exclusively on Season~B~2025 data. Rwanda
 has three agricultural seasons with different crop compositions
 and phenological calendars. Performance on Season~A or in future
 years has not been assessed. Whether a model trained on 2025
-spectral signatures generalises reliably to 2026 data --- given
+spectral signatures generalises reliably to 2026 data, given
 inter-annual variability in rainfall onset, planting dates, and
-crop development --- remains an open question.
+crop development, remains an open question.
 
 
 % ------------------------------------------------------------
@@ -645,8 +645,8 @@ used in model training and testing and cannot serve as independent
 validation for the inference map. Acquiring new field-collected
 ground truth is the primary missing requirement for a quantitative spatial
 accuracy assessment. The two validation approaches used in this
-study --- visual spatial plausibility assessment and cross-check
-against the NISR SAS Season~B~2025 statistics --- are indicative
+study, visual spatial plausibility assessment and cross-check
+against the NISR SAS Season~B~2025 statistics, are indicative
 rather than rigorous.
 
 
@@ -668,9 +668,9 @@ proper tuning.
 % ------------------------------------------------------------
 
 The 7-day compositing window may miss fast phenological events
---- such as the flooded transplanting window for paddy rice,
-which can last only a few days --- that would be captured by
-daily or near-daily observations. Fusing optical Sentinel-2
+that would be captured by daily or near-daily observations, for
+example the flooded transplanting window for paddy rice, which
+can last only a few days. Fusing optical Sentinel-2
 with Sentinel-1 SAR data could improve discrimination for crops
 with distinctive radar backscatter signatures.
 
@@ -711,7 +711,7 @@ with official characterisation of the district. The bean
 underestimation was explained as a measurement mismatch between
 farmer-reported cultivated area and pixel-level spectral
 classification in a landscape where 75.9\% of cultivated area
-is intercropped --- a finding with broader implications for
+is intercropped, a finding with broader implications for
 how satellite-derived crop maps should be compared against
 area-based agricultural statistics in intercropped systems.
 The uncertain prediction category was identified as a

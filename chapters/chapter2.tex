@@ -90,7 +90,7 @@ dynamics and crop development over time.
   soil, water, and built surfaces each exhibit markedly different 
   signatures, enabling automated classification algorithms to 
   discriminate between them. Within vegetation itself, spectral 
-  differences between crop types --- though subtler --- can be 
+  differences between crop types, though subtler, can be 
   exploited when sufficient spectral and temporal resolution is 
   available \cite{thenkabail2018}.
 
@@ -210,20 +210,20 @@ dynamics and crop development over time.
     Mercator} (UTM) projection \cite{esa2015}. The UTM system 
     divides the Earth into 60 longitudinal zones of 6 degrees 
     each, numbered 1 to 60 from west to east. Within each zone, 
-    coordinates are expressed in metres --- easting and northing 
-    --- relative to a zone-specific central meridian, minimising 
+    coordinates are expressed in metres, easting and northing,
+    relative to a zone-specific central meridian, minimising 
     distortion within each zone and ensuring geometric consistency 
     for pixel-level spatial operations.
 
     Under the MGRS system, each UTM zone is further subdivided 
     into a grid of 100~$\times$~100~km tiles, each identified 
     by a unique alphanumeric code composed of the UTM zone number, 
-    a latitude band letter, and a two-letter square identifier 
-    --- for example, \texttt{36MTC} and \texttt{36MTD} for tiles 
+    a latitude band letter, and a two-letter square identifier,
+    for example, \texttt{36MTC} and \texttt{36MTD} for tiles 
     covering Rwanda \cite{esa2015}. Each Sentinel-2 acquisition 
     is projected and delivered within this fixed tile grid, 
     ensuring that imagery from different dates is inherently 
-    co-registered and spatially aligned --- a prerequisite for 
+    co-registered and spatially aligned, a prerequisite for 
     constructing pixel-wise time series.
 
     \begin{figure}[H]
@@ -244,7 +244,7 @@ dynamics and crop development over time.
 
     The quadkey system subdivides the Earth's surface recursively 
     into a quadtree of tiles at increasing zoom levels. At each 
-    level, every tile is divided into four equal quadrants --- 
+    level, every tile is divided into four equal quadrants: 
     top-left (0), top-right (1), bottom-left (2), and 
     bottom-right (3). A tile at any zoom level is uniquely 
     identified by a string of digits encoding its hierarchical 
@@ -285,7 +285,7 @@ season.
 
   % ── 2.4.1 ──
   \subsection{Phenological Cycles and Temporal Profiles}
-  Each crop type follows a characteristic growth cycle --- from 
+  Each crop type follows a characteristic growth cycle, from 
   germination and early vegetative growth, through canopy closure, 
   flowering, and grain fill, to senescence and harvest. This cycle 
   produces a distinctive temporal profile of spectral reflectance 
@@ -295,9 +295,9 @@ season.
   These temporal profiles are the fundamental signal exploited 
   by time-series classification approaches. Crops that are 
   spectrally similar at a single date may exhibit clearly 
-  distinct seasonal trajectories --- differing in the timing 
+  distinct seasonal trajectories, differing in the timing 
   of green-up, peak greenness, amplitude, and senescence date 
-  --- making temporal information essential for accurate 
+  making temporal information essential for accurate 
   multi-class crop mapping \cite{defourny2019}. Key phenological 
   metrics such as start of season, end of season, peak greenness, 
   seasonal amplitude, and seasonal integral serve as compact 
@@ -376,9 +376,9 @@ adopted in this project discussed.
   crops that differ primarily in their temporal behaviour.
 
     \subsubsection{Traditional Machine Learning and Ensemble Methods}
-    Traditional machine learning methods --- particularly \textbf{Support 
+    Traditional machine learning methods, particularly \textbf{Support 
     Vector Machines} (SVM), \textbf{Random Forest} (RF), and \textbf{gradient 
-    boosting} approaches --- have been widely applied to crop 
+    boosting} approaches, have been widely applied to crop 
     mapping using single-date or multi-date optical imagery 
     \cite{mountrakis2011}. These methods operate on handcrafted 
     spectral features derived from individual bands or vegetation 
@@ -409,9 +409,9 @@ adopted in this project discussed.
     large labelled datasets are available \cite{maggiori2017}.
 
     For crop mapping specifically, CNNs have been applied to 
-    high-resolution imagery to exploit spatial context --- 
+    high-resolution imagery to exploit spatial context, including
     field shape, texture, and neighbourhood relationships 
-    --- as complementary discriminative information beyond 
+    as complementary discriminative information beyond 
     spectral signatures alone \cite{kussul2017}. Despite 
     these advances, CNN-based snapshot approaches share 
     the same fundamental limitation as traditional methods: 
@@ -427,21 +427,21 @@ adopted in this project discussed.
     contexts such as Rwanda. First, the reliance on a single 
     acquisition date introduces high sensitivity to atmospheric 
     conditions, cloud cover, and phenological variability 
-    between years --- a single cloudy image can render an 
+    between years, meaning a single cloudy image can render an 
     entire classification pipeline unusable \cite{inglada2016}. 
     Second, spectrally similar crops that differ primarily 
     in their growth timing cannot be reliably distinguished 
     from a single observation. Third, the class imbalance 
-    typical of smallholder landscapes --- where dominant 
-    crops vastly outnumber minority crops --- is particularly 
+    typical of smallholder landscapes, where dominant 
+    crops vastly outnumber minority crops, is particularly 
     difficult to address without the additional discriminative 
     power provided by temporal information. These limitations 
     motivated a shift toward time-series-based approaches.
 
   % ── 2.5.2 ── 
   \subsection{Time-Series Based Approaches}
-  The availability of dense satellite time series --- made 
-  possible by missions such as Sentinel-2 --- has enabled 
+  The availability of dense satellite time series, made 
+  possible by missions such as Sentinel-2, has enabled 
   a fundamental shift in crop mapping methodology. Rather 
   than relying on spectral snapshots, time-series approaches 
   exploit the full temporal trajectory of crop growth, 
@@ -462,10 +462,10 @@ adopted in this project discussed.
     to large datasets and struggle with noisy or 
     gap-filled time series.
 
-    \textbf{Threshold-based} phenological methods --- which classify 
+    \textbf{Threshold-based} phenological methods, which classify 
     pixels based on the timing and magnitude of key 
     phenological events such as start of season, peak, 
-    and end of season --- have also been widely used 
+    and end of season, have also been widely used 
     for crop mapping in data-sparse environments 
     \cite{barcanibar2020}. These approaches are 
     interpretable and computationally efficient but 
@@ -509,9 +509,9 @@ adopted in this project discussed.
 
     A complementary line of research has focused on 
     extracting explicit phenological features from 
-    satellite time series --- such as start of season, 
+    satellite time series, such as start of season, 
     end of season, peak greenness, seasonal amplitude, 
-    and seasonal integral --- and using these as inputs 
+    and seasonal integral, and using these as inputs 
     to classical machine learning classifiers 
     \cite{inglada2016}. This hybrid approach combines 
     the interpretability of phenological metrics with 
@@ -532,7 +532,7 @@ adopted in this project discussed.
   \subsection{Comparative Analysis and Positioning of Our Work}
 
   The reviewed literature highlights a clear evolution in crop 
-  type mapping methodology --- from simple snapshot-based 
+  type mapping methodology, from simple snapshot-based 
   approaches relying on single-date spectral information, 
   to sophisticated time-series methods that exploit the 
   full temporal trajectory of crop growth. While significant 
@@ -551,9 +551,9 @@ adopted in this project discussed.
   Furthermore, the majority of published pipelines report 
   overall accuracy metrics that are dominated by majority 
   classes, masking poor performance on rare crop types. 
-  The challenge of detecting minority crops --- which are 
+  The challenge of detecting minority crops, which are 
   often the most important from a food security perspective 
-  --- remains an open problem that receives limited 
+  remains an open problem that receives limited 
   attention in the literature.
 
   This project is positioned at the intersection of these 

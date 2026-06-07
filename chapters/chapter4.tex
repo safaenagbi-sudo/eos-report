@@ -146,13 +146,13 @@ IRISH POTATO &    641   &   160   &    801   \\
 \end{tabular}
 \end{table}
 
-\paragraph{Stage 1 --- ANOVA $F$-test with Bonferroni correction.}
+\paragraph{Stage 1: ANOVA $F$-test with Bonferroni correction.}
 All 96 features passed the Bonferroni-corrected threshold
 ($\alpha / 96$), so no predictors were removed at this stage. Every
 engineered variable carried at least some class-discriminative signal,
 though the ANOVA filter does not address correlation.
 
-\paragraph{Stage 2 --- Random Forest importance ranking.}
+\paragraph{Stage 2: Random Forest importance ranking.}
 Feature importances placed moisture and dryness indices at the top:
 NBR\_min, NBR2\_min, LSWI\_mean, NBR\_mean, and NBR\_eos were the five
 highest-ranked features. Figure~\ref{fig:rf_feature_importance} shows
@@ -167,7 +167,7 @@ the top 15.
     \label{fig:rf_feature_importance}
 \end{figure}
 
-\paragraph{Stage 3 --- Recursive feature elimination (RFECV).}
+\paragraph{Stage 3: Recursive feature elimination (RFECV).}
 RFECV with 5-fold cross-validation selected \textbf{37 features} as the
 optimal subset, the point at which cross-validated macro F1 peaked
 (Figure~\ref{fig:rfe_feature_selection_curve}). This 37-feature subset
@@ -279,7 +279,7 @@ Linear SVM        & 0.9156 & 0.8851 & 0.8035 & 0.9263 \\
     \label{fig:classical_model_benchmark}
 \end{figure}
 
-The three top models --- Extra Trees, XGBoost, and Random Forest ---
+The three top models, Extra Trees, XGBoost, and Random Forest,
 were carried forward to the imbalance strategy comparison and
 hyperparameter tuning stages.
 
