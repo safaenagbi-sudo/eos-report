@@ -17,6 +17,7 @@
 %  TIMES-LIKE FONT  (newtx – works with pdfLaTeX)
 % ─────────────────────────────────────────────
 \usepackage{newtxtext, newtxmath}
+\usepackage{calligra}
 
 % ─────────────────────────────────────────────
 %  PAGE GEOMETRY
@@ -328,17 +329,10 @@
 
 % ── Appendices ───────────────────────────────
 \appendix
-% Override chapter label to say "Appendix"
+% Appendix chapters use the title itself, e.g. "Appendix A".
 \titleformat{\chapter}[display]
   {\normalfont\bfseries\color{chaptercolor}}
-  {%
-    \begin{tikzpicture}
-      \draw[color=accentgold, line width=1.2pt] (0,0) -- (2.5,0);
-      \draw[color=accentgold, line width=1.2pt] (0,0) -- (0,-0.5);
-      \node[right] at (2.6,0)
-        {\normalfont\large\color{chaptercolor}\textsc{Appendix}~\thechapter};
-    \end{tikzpicture}%
-  }
+  {}
   {0pt}
   {%
     \vspace{4pt}%
@@ -350,6 +344,15 @@
       \centering\LARGE\bfseries\color{chaptercolor}#1
     \end{tcolorbox}%
   }
+
+\newcommand{\reportappendixchapter}[1]{%
+  \refstepcounter{chapter}%
+  \chapter*{Appendix~\thechapter}%
+  \phantomsection%
+  \addcontentsline{toc}{chapter}{Appendix~\thechapter}%
+  \markboth{Appendix~\thechapter}{Appendix~\thechapter}%
+  \label{#1}%
+}
 
 \input{appendices/appendix_a}
 \input{appendices/appendix_b}
