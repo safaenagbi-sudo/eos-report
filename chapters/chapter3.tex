@@ -691,14 +691,14 @@ spectral values are filled using \textbf{linear interpolation} applied
 independently to each spectral band column within each QUADKEY's time
 series.
 
-Linear interpolation is chosen over more complex alternatives for the
-following reasons. First, within the Season~B growing window, crop spectral
-reflectance follows a broadly monotonic or unimodal trajectory (rising
-during vegetative growth, peaking at canopy closure, declining at
-senescence). Over short gaps of one to three observations (7--21~days),
-linear interpolation provides a geometrically reasonable approximation to
-this trajectory without requiring assumptions about the specific functional
-form of the phenological curve. Second, more complex methods such as
+Linear interpolation was chosen over more complex alternatives for several
+reasons. First, within limited missing gaps, Sentinel-2 vegetation signals
+are expected to change gradually because crop development follows a broadly
+smooth seasonal trajectory, with green-up, peak canopy development, and
+senescence phases. Over such gaps, linear interpolation provides a
+reasonable local approximation to the trajectory without requiring
+assumptions about the specific functional form of the phenological curve.
+Second, more complex methods such as
 Savitzky--Golay smoothing or double-logistic fitting require a sufficient
 number of valid observations to fit reliably, which is not guaranteed in
 heavily cloud-affected time series. Third, linear interpolation is

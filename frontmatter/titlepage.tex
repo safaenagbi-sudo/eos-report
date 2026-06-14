@@ -6,19 +6,20 @@
 \cleardoublepage
 \thispagestyle{empty}
 
-\definecolor{ensamplum}{RGB}{91,32,102}
+\definecolor{ensamplum}{HTML}{460267}
 
 \begin{tikzpicture}[remember picture,overlay]
     \fill[ensamplum]
         (current page.north west)
         rectangle
-        ($(current page.south west)+(2.8cm,0)$);
+        ($(current page.south west)+(2.75cm,0)$);
 
     \node[
         rotate=90,
         white,
-        font=\fontsize{36}{40}\selectfont\calligra
-    ] at ($(current page.west)+(1.4cm,0)$)
+        inner sep=6pt,
+        font=\fontsize{55}{50}\selectfont\calligra
+    ] at ($(current page.west)+(1.45cm,0)$)
     {Département Génie Informatique};
 
     \node[
@@ -92,7 +93,7 @@ in Rwanda
     $\bullet$ & Prof. Sarah Aouhassi    & Professor at ENSAM Casablanca & President \\
     $\bullet$ & Prof. Badr Hirchoua     & Professor at ENSAM Casablanca & Examiner \\
     $\bullet$ & Prof. \SupervisorName{} & Professor at ENSAM Casablanca & Academic Supervisor \\
-    $\bullet$ & Mrs. Mitra Noosha       & Oracle                        & Company Supervisor \\
+    $\bullet$ & Dr. Mitra Noosha        & Sr. Principal Data Scientist at Oracle & Company Supervisor \\
 \end{tabular*}
 \endgroup
 
