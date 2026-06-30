@@ -1326,19 +1326,25 @@ phenology.
 \label{sec:thresholds}
 % ============================================================
 
-Following final model selection, class-specific confidence thresholds are
-calibrated on the test set. Standard classifier output assigns
-each QUADKEY the class with the highest predicted probability, regardless
-of whether that probability is high or low. In a four-class imbalanced
-setting, this can lead to low-confidence predictions for minority classes
-being silently accepted. Per-class thresholding addresses this by requiring
-the predicted probability for a class to exceed a class-specific minimum
-before the label is confirmed.
+Following final model selection, class-specific confidence thresholds were
+calibrated using the held-out labelled set. Standard classifier output
+assigns each QUADKEY the class with the highest predicted probability,
+regardless of whether that probability is high or low. In a four-class
+imbalanced setting, this can lead to low-confidence predictions being
+accepted. Per-class thresholding addresses this by requiring the predicted
+probability for a class to exceed a class-specific minimum before the label
+is confirmed.
 
-For each class $c$, the optimal threshold $\tau_c$ is found by a grid
-search over candidate values in the range $[0.05, 0.95]$ at a step of
-$0.0025$. For each candidate threshold, the per-class F1 score is
-computed on the test set by applying the rule:
+For each class, the model's predicted probabilities on the held-out set
+were used to compute a one-vs-rest precision--recall curve. Candidate
+thresholds were obtained from the predicted probability scores. For each
+threshold, the per-class F1 score was computed, and the threshold that
+maximized F1 was selected. The resulting thresholds were saved to
+\texttt{artifacts/per\_class\_thresholds.json} and later loaded during
+district-scale inference.
+
+During inference, the selected thresholds were applied using the following
+rule:
 
 \begin{equation}
 \hat{y}_i =
@@ -1348,18 +1354,9 @@ c & \text{if } \hat{p}_{i,c} \geq \tau_c \\
 \end{cases}
 \end{equation}
 
-where $\hat{p}_{i,c}$ is the predicted probability of the argmax class
-$c$ for observation $i$. The threshold that maximises the F1 score for
-class $c$ on the test set is selected as $\tau_c$.
-
-The resulting calibrated thresholds are saved to
-\texttt{artifacts/per\_class\_thresholds.json} and loaded by the
-district-scale inference pipeline. Using the test set for threshold
-calibration is acceptable here because the thresholds are not used to
-select the model (model selection was completed in
-Section~\ref{subsec:tuning} using training-set cross-validation only);
-the test set is used solely to calibrate the decision boundary of the
-already-chosen model.
+where $\hat{p}_{i,c}$ is the predicted probability assigned to class
+$c$ for observation $i$, and $\tau_c$ is the calibrated confidence
+threshold for class $c$.
 
 
 % ============================================================
@@ -1452,7 +1449,9 @@ Predicted class labels are finalised by applying the per-class confidence
 thresholds calibrated in Section~\ref{sec:thresholds}. For each QUADKEY,
 the model's argmax class $c$ is accepted only if the corresponding class
 probability $\hat{p}_{i,c}$ meets or exceeds the threshold $\tau_c$
-loaded from \texttt{artifacts/per\_class\_thresholds.json}. If the
+loaded from \texttt{artifacts/per\_class\_thresholds.json}, where
+$\hat{p}_{i,c}$ is the predicted probability assigned to class $c$ for
+observation $i$. If the
 probability falls below the threshold, the QUADKEY is assigned the label
 \texttt{uncertain}. This mechanism prevents low-confidence predictions
 from being silently included in the crop map, and allows the proportion
